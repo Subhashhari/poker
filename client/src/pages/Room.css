@@ -1,0 +1,290 @@
+/* ─── Leave Button ─── */
+.leave-btn {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 150;
+  padding: 8px 14px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text-2);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 150ms, border-color 150ms;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.leave-btn:hover {
+  color: var(--text-0);
+  border-color: var(--text-2);
+}
+
+.leave-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ─── Lobby ─── */
+.lobby {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--bg-0);
+}
+
+.lobby-panel {
+  width: 100%;
+  max-width: 420px;
+  padding: 36px 28px;
+  animation: enterScale 400ms var(--ease) forwards;
+}
+
+.lobby-top {
+  margin-bottom: 28px;
+}
+
+.lobby-top h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-0);
+  margin-bottom: 14px;
+}
+
+.room-code-box {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 24px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+}
+
+.room-code-box span:first-child {
+  font-size: 10px;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.room-code-box .code {
+  font-family: var(--mono);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 4px;
+  color: var(--gold);
+  margin-top: 2px;
+}
+
+/* Player list */
+.lobby-players h3 {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+
+.p-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 24px;
+}
+
+.p-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  animation: enter 300ms var(--ease) backwards;
+}
+
+.p-list-item .name {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.p-list-item .chips {
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--gold);
+}
+
+.host-tag {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 99px;
+  background: var(--bg-4);
+  color: var(--text-1);
+  margin-left: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* Start */
+.lobby-foot {
+  display: flex;
+  justify-content: center;
+}
+
+.btn-start {
+  padding: 14px 40px;
+  background: var(--gold);
+  border: none;
+  border-radius: var(--r-sm);
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 600;
+  color: #111;
+  cursor: pointer;
+  transition: background 150ms, transform 100ms;
+}
+
+.btn-start:hover:not(:disabled) { background: var(--gold-dim); }
+.btn-start:active { transform: scale(0.97); }
+
+.btn-start:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.wait-msg {
+  text-align: center;
+  color: var(--text-2);
+  font-size: 13px;
+  padding: 10px;
+}
+
+/* ─── Round Over ─── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  animation: overlayIn 200ms;
+}
+
+.overlay-card {
+  padding: 36px 40px;
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+  max-width: 360px;
+  width: 90%;
+  animation: enterScale 350ms var(--ease);
+}
+
+.overlay-card h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-0);
+  margin-bottom: 6px;
+}
+
+.overlay-card .detail {
+  font-size: 14px;
+  color: var(--text-1);
+  margin-bottom: 4px;
+}
+
+.overlay-card .detail-sub {
+  font-size: 13px;
+  color: var(--text-2);
+  margin-bottom: 16px;
+}
+
+.overlay-card .pot-val {
+  font-family: var(--mono);
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--gold);
+}
+
+/* ─── Game Over ─── */
+.overlay-dark {
+  background: rgba(0,0,0,0.8);
+  z-index: 300;
+}
+
+.go-card h2 {
+  font-size: 20px;
+  margin-bottom: 20px;
+}
+
+.standings {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.st-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--bg-2);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+}
+
+.st-item:first-child {
+  border-color: var(--gold-dim);
+}
+
+.st-rank {
+  font-weight: 700;
+  color: var(--text-2);
+  width: 28px;
+  font-size: 14px;
+}
+
+.st-name {
+  flex: 1;
+  text-align: left;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.st-chips {
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--gold);
+}
+
+/* ─── Toast ─── */
+.toast {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 250;
+  padding: 10px 20px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text-1);
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: var(--shadow-md);
+  animation: enter 250ms var(--ease);
+}

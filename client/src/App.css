@@ -1,0 +1,88 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap');
+
+/* ─── Design Tokens ─── */
+:root {
+  --bg-0: #101114;
+  --bg-1: #16181d;
+  --bg-2: #1e2025;
+  --bg-3: #272a30;
+  --bg-4: #31343b;
+
+  --felt: #1b5e3b;
+  --felt-light: #237a4d;
+  --felt-dark: #13442b;
+  --felt-rim: #0d2e1e;
+
+  --gold: #c9a84c;
+  --gold-dim: #a68a3e;
+
+  --red: #d94f4f;
+  --green: #3ba55d;
+  --blue: #4a8fe7;
+  --amber: #d4943a;
+
+  --text-0: #eaeaea;
+  --text-1: #b0b3ba;
+  --text-2: #6d717a;
+
+  --border: rgba(255,255,255,0.07);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.5);
+
+  --font: 'DM Sans', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', monospace;
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 18px;
+}
+
+/* ─── Reset ─── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body, #root { height: 100%; width: 100%; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg-0);
+  color: var(--text-0);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bg-4); border-radius: 99px; }
+
+/* ─── Keyframes ─── */
+@keyframes enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes enterScale {
+  from { opacity: 0; transform: scale(0.95) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes cardReveal {
+  from { opacity: 0; transform: rotateY(80deg) scale(0.85); }
+  to   { opacity: 1; transform: rotateY(0) scale(1); }
+}
+
+@keyframes turnPulse {
+  0%, 100% { box-shadow: 0 0 0 2px var(--gold), 0 0 12px rgba(201,168,76,0.15); }
+  50%      { box-shadow: 0 0 0 2px var(--gold), 0 0 20px rgba(201,168,76,0.35); }
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.8); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes overlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}

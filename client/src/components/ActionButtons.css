@@ -1,0 +1,91 @@
+/* ─── Action Bar ─── */
+.action-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 14px 20px 22px;
+  background: linear-gradient(to top, var(--bg-0) 60%, transparent);
+  display: flex;
+  justify-content: center;
+  z-index: 100;
+  animation: enter 300ms var(--ease);
+}
+
+.action-buttons {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.action-btn {
+  padding: 10px 22px;
+  border: none;
+  border-radius: var(--r-sm);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms, transform 100ms;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.action-btn:active { transform: scale(0.96); }
+
+.action-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.act-fold { background: var(--red); }
+.act-fold:hover:not(:disabled) { background: #c04040; }
+
+.act-check { background: var(--blue); }
+.act-check:hover:not(:disabled) { background: #3e7fd4; }
+
+.act-call { background: var(--green); }
+.act-call:hover:not(:disabled) { background: #309950; }
+
+.act-raise { background: var(--gold); color: #111; }
+.act-raise:hover:not(:disabled) { background: var(--gold-dim); }
+
+.btn-amt {
+  font-family: var(--mono);
+  font-weight: 600;
+}
+
+/* Raise group */
+.raise-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.raise-input {
+  width: 80px;
+  padding: 9px 10px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--gold);
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  outline: none;
+  transition: border-color 150ms;
+}
+
+.raise-input:focus {
+  border-color: var(--text-2);
+}
+
+.raise-input::-webkit-inner-spin-button,
+.raise-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}

@@ -1,0 +1,150 @@
+.landing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--bg-0);
+}
+
+.landing-card {
+  width: 100%;
+  max-width: 400px;
+  padding: 40px 32px;
+  animation: enterScale 500ms var(--ease) forwards;
+}
+
+/* Header */
+.landing-header {
+  margin-bottom: 36px;
+}
+
+.landing-header h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-0);
+  letter-spacing: -0.3px;
+}
+
+.landing-header p {
+  color: var(--text-2);
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+/* Form */
+.landing-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.input {
+  padding: 12px 14px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text-0);
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 500;
+  outline: none;
+  transition: border-color 200ms;
+}
+
+.input:focus {
+  border-color: var(--text-2);
+}
+
+.input::placeholder {
+  color: var(--text-2);
+}
+
+.input-code {
+  text-transform: uppercase;
+  font-family: var(--mono);
+  font-size: 16px;
+  letter-spacing: 3px;
+  text-align: center;
+}
+
+/* Buttons */
+.btn-row {
+  display: flex;
+  gap: 10px;
+}
+
+.btn {
+  flex: 1;
+  padding: 12px 20px;
+  border: none;
+  border-radius: var(--r-sm);
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms, transform 100ms;
+}
+
+.btn:active { transform: scale(0.97); }
+
+.btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-gold {
+  background: var(--gold);
+  color: #111;
+}
+.btn-gold:hover:not(:disabled) { background: var(--gold-dim); }
+
+.btn-ghost {
+  background: var(--bg-3);
+  color: var(--text-0);
+}
+.btn-ghost:hover:not(:disabled) { background: var(--bg-4); }
+
+/* Divider */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--text-2);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* Error */
+.error-msg {
+  padding: 10px 14px;
+  background: rgba(217,79,79,0.1);
+  border: 1px solid rgba(217,79,79,0.25);
+  border-radius: var(--r-sm);
+  color: var(--red);
+  font-size: 13px;
+  animation: enter 200ms var(--ease);
+}
