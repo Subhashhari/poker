@@ -13,6 +13,7 @@ export default function ActionButtons({
 
   const canBet   = validActions.includes('bet');
   const canRaise = validActions.includes('raise');
+  const showSlider = canBet || canRaise;
 
   const minAmt = canRaise ? currentBet + 1 : 1;
   const maxAmt = playerChipStack;
@@ -34,82 +35,57 @@ export default function ActionButtons({
   const canCall  = validActions.includes('call');
 
   const amt = Number(raiseInput) || 0;
-  const raiseOk = canRaise && amt > currentBet && amt <= maxAmt;
-  const betOk   = canBet && amt > 0 && amt <= maxAmt;
-
-  const handleSlider = (e) => {
-    setRaiseInput(e.target.value);
-  };
-
-  const handleInput = (e) => {
-    setRaiseInput(e.target.value.replace(/\D/g, ''));
-  };
-
-  // Quick-pick presets
-  const presets = [];
-  if (canBet || canRaise) {
-    const half = Math.floor(maxAmt / 2);
-    const third = Math.floor(maxAmt / 3);
-    if (third > minAmt) presets.push({ label: '⅓', val: third });
-    if (half > minAmt) presets.push({ label: '½', val: half });
-    presets.push({ label: 'All-in', val: maxAmt });
-  }
+  const isValid = showSlider && amt >= minAmt && amt <= maxAmt;
 
   return (
     <div className="action-bar">
-      <div className="action-buttons">
+      {/* Left: core actions */}
+      <div className="act-group">
         {canFold && (
-          <button className="action-btn act-fold" onClick={() => onAction({ type: 'fold' })}>Fold</button>
+          <button className="act-btn act-fold" onClick={() => onAction({ type: 'fold' })}>Fold</button>
         )}
         {canCheck && (
-          <button className="action-btn act-check" onClick={() => onAction({ type: 'check' })}>Check</button>
+          <button className="act-btn act-check" onClick={() => onAction({ type: 'check' })}>Check</button>
         )}
         {canCall && (
-          <button className="action-btn act-call" onClick={() => onAction({ type: 'call' })}>
-            Call <span className="btn-amt">{callAmount}</span>
+          <button className="act-btn act-call" onClick={() => onAction({ type: 'call' })}>
+            Call <span className="act-val">{callAmount}</span>
           </button>
         )}
-        {(canBet || canRaise) && (
-          <div className="raise-group">
-            <div className="slider-row">
-              <input
-                type="range"
-                className="raise-slider"
-                min={minAmt}
-                max={maxAmt}
-                value={amt || minAmt}
-                onChange={handleSlider}
-              />
-              <input
-                type="text"
-                inputMode="numeric"
-                className="raise-input"
-                value={raiseInput}
-                onChange={handleInput}
-                placeholder={canRaise ? `>${currentBet}` : 'Amt'}
-              />
-            </div>
-            <div className="preset-row">
-              {presets.map(p => (
-                <button
-                  key={p.label}
-                  className="preset-btn"
-                  onClick={() => setRaiseInput(String(p.val))}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
-            <button
-              className="action-btn act-raise"
-              onClick={() => onAction({ type: canRaise ? 'raise' : 'bet', amount: amt })}
-              disabled={canRaise ? !raiseOk : !betOk}
-            >
-              {canRaise ? 'Raise' : 'Bet'} {(canRaise ? raiseOk : betOk) && <span className="btn-amt">{amt}</span>}
-            </button>
-          </div>
-        )}
       </div>
+
+      {/* Right: raise/bet with inline slider */}
+      {showSlider && (
+        <div className="act-raise">
+          <div className="raise-presets">
+            <button className="raise-pre" onClick={() => setRaiseInput(String(Math.max(minAmt, Math.floor(maxAmt / 3))))}>⅓</button>
+            <button className="raise-pre" onClick={() => setRaiseInput(String(Math.max(minAmt, Math.floor(maxAmt / 2))))}>½</button>
+            <button className="raise-pre raise-pre--allin" onClick={() => setRaiseInput(String(maxAmt))}>All-in</button>
+          </div>
+          <input
+            type="range"
+            className="raise-slider"
+            min={minAmt}
+            max={maxAmt}
+            value={amt || minAmt}
+            onChange={e => setRaiseInput(e.target.value)}
+          />
+          <input
+            type="text"
+            inputMode="numeric"
+            className="raise-input"
+            value={raiseInput}
+            onChange={e => setRaiseInput(e.target.value.replace(/\D/g, ''))}
+          />
+          <button
+            className="act-btn act-go"
+            onClick={() => onAction({ type: canRaise ? 'raise' : 'bet', amount: amt })}
+            disabled={!isValid}
+          >
+            {canRaise ? 'Raise' : 'Bet'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,110 +1,183 @@
-/* ─── Table ─── */
+/* ─── Table Wrap ─── */
 .table-wrap {
   width: 100%;
   height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-0);
-  padding: 20px;
+  background: radial-gradient(ellipse at 50% 40%, #191c22 0%, #0d0e11 100%);
+  padding: 24px;
   position: relative;
+  overflow: hidden;
 }
 
+/* Ambient glow behind table */
+.table-wrap::before {
+  content: '';
+  position: absolute;
+  width: 700px;
+  height: 400px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -55%);
+  background: radial-gradient(ellipse, rgba(27,94,59,0.18) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* ─── Table Felt ─── */
 .felt {
   position: relative;
   width: 100%;
-  max-width: 860px;
-  height: 480px;
-  border-radius: 48% / 44%;
-  background: radial-gradient(ellipse at 50% 45%, var(--felt-light), var(--felt), var(--felt-dark));
-  border: 5px solid var(--felt-rim);
+  max-width: 900px;
+  height: 500px;
+  border-radius: 240px / 220px;
+  background:
+    radial-gradient(ellipse at 50% 40%, #29834f 0%, #1e6b3e 30%, #155530 60%, #0f3f24 100%);
+  border: 6px solid #1a3726;
   box-shadow:
-    0 0 0 6px rgba(13,46,30,0.5),
-    inset 0 0 60px rgba(0,0,0,0.2),
-    0 8px 40px rgba(0,0,0,0.4);
+    /* outer wood-like rail */
+    0 0 0 10px #1a2a20,
+    0 0 0 14px #0c1a12,
+    /* depth / ambient */
+    inset 0 0 80px rgba(0,0,0,0.25),
+    inset 0 2px 20px rgba(255,255,255,0.04),
+    0 20px 60px rgba(0,0,0,0.5),
+    0 0 120px rgba(27,94,59,0.08);
 }
 
+/* Subtle texture overlay */
+.felt::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: url("data:image/svg+xml,%3Csvg width='4' height='4' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='4' height='4' fill='%23000' opacity='0.03'/%3E%3Crect width='1' height='1' fill='%23fff' opacity='0.01'/%3E%3C/svg%3E");
+  pointer-events: none;
+}
+
+/* ─── Center content ─── */
 .table-center {
   position: absolute;
-  top: 50%;
+  top: 48%;
   left: 50%;
   transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   z-index: 10;
 }
 
+/* ─── Pot ─── */
 .pot-box {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1px;
+  gap: 2px;
   animation: popIn 300ms var(--ease);
+  padding: 6px 18px;
+  background: rgba(0,0,0,0.25);
+  border-radius: 20px;
+  backdrop-filter: blur(4px);
 }
 
 .pot-label {
   font-size: 9px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
-  color: rgba(255,255,255,0.4);
+  letter-spacing: 2px;
+  color: rgba(255,255,255,0.35);
 }
 
 .pot-val {
   font-family: var(--mono);
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
   color: var(--gold);
+  text-shadow: 0 0 12px rgba(201,168,76,0.2);
 }
 
+/* ─── Side Pots ─── */
+.side-pots {
+  display: flex;
+  gap: 5px;
+  margin-top: 2px;
+}
+
+.side-pot {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-2);
+  padding: 1px 8px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 99px;
+}
+
+/* ─── Seat positioning ─── */
 .seat-pos {
   position: absolute;
   transform: translate(-50%, -50%);
   z-index: 20;
 }
 
-/* ─── Side Pots ─── */
-.side-pots {
+/* ─── Vertical Timer ─── */
+.timer-vert {
+  position: absolute;
+  right: -60px;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 6px;
-  margin-top: 2px;
+  z-index: 30;
 }
 
-.side-pot {
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-1);
-  padding: 1px 6px;
-  background: rgba(255,255,255,0.06);
-  border-radius: 99px;
+.timer-vert-label {
+  font-family: var(--font);
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: rgba(255,255,255,0.25);
 }
 
-/* ─── Timer Bar ─── */
-.timer-bar {
-  position: fixed;
-  bottom: 78px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 260px;
-  height: 4px;
-  background: var(--bg-3);
-  border-radius: 2px;
-  z-index: 110;
+.timer-vert-track {
+  width: 10px;
+  height: 220px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 5px;
+  position: relative;
   overflow: hidden;
 }
 
-.timer-fill {
-  height: 100%;
-  border-radius: 2px;
-  transition: width 100ms linear;
-  background: var(--gold);
+.timer-vert-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  border-radius: 5px;
+  background: linear-gradient(to top, var(--gold), #e0c96a);
+  box-shadow: 0 0 8px rgba(201,168,76,0.25);
 }
 
-.timer-fill[style*="width: 0%"],
-.timer-fill[style*="width: 1"],
-.timer-fill[style*="width: 2"] {
-  background: var(--red);
+.timer-vert--low .timer-vert-fill {
+  background: linear-gradient(to top, var(--red), #e06060);
+  box-shadow: 0 0 8px rgba(217,79,79,0.25);
+}
+
+.timer-vert-sec {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(201,168,76,0.6);
+}
+
+.timer-vert--low .timer-vert-sec {
+  color: rgba(217,79,79,0.7);
+}
+
+.timer-vert--low .timer-vert-label {
+  color: rgba(217,79,79,0.35);
 }

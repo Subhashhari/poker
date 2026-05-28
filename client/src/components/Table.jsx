@@ -131,13 +131,16 @@ export default function Table({ gameState, myUUID, roomId }) {
             </div>
           );
         })}
+        {timerForUUID && timerPct != null && (
+          <div className={`timer-vert ${timerPct < 25 ? 'timer-vert--low' : ''}`}>
+            <span className="timer-vert-label">Timer</span>
+            <div className="timer-vert-track">
+              <div className="timer-vert-fill" style={{ height: `${timerPct}%` }} />
+            </div>
+            <span className="timer-vert-sec">{Math.ceil(timerPct / 5)}s</span>
+          </div>
+        )}
       </div>
-
-      {isMyTurn && timerForUUID === myUUID && (
-        <div className="timer-bar">
-          <div className="timer-fill" style={{ width: `${timerPct}%` }} />
-        </div>
-      )}
 
       <ActionButtons
         onAction={handleAction}

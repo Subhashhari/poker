@@ -3,46 +3,49 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
 }
 
 .comm-label {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
-  color: rgba(255,255,255,0.4);
+  letter-spacing: 2px;
+  color: rgba(255,255,255,0.3);
 }
 
 .comm-row {
   display: flex;
-  gap: 6px;
+  gap: 7px;
 }
 
 .comm-card {
-  width: 48px;
-  height: 68px;
-  border-radius: 6px;
+  width: 50px;
+  height: 70px;
+  border-radius: 7px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.4);
 }
 
 .comm-card--face {
-  background: #fff;
+  background: linear-gradient(150deg, #ffffff 0%, #f2f2f2 100%);
+  box-shadow:
+    0 4px 14px rgba(0,0,0,0.35),
+    0 1px 2px rgba(0,0,0,0.15),
+    inset 0 1px 0 rgba(255,255,255,0.9);
   animation: cardReveal 380ms var(--ease) backwards;
 }
 
-.comm-card--face.card--red { color: #c0392b; }
+.comm-card--face.card--red { color: #d33; }
 .comm-card--face.card--blk { color: #1a1a2e; }
 
 .comm-r {
   font-size: 16px;
   font-family: var(--mono);
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1;
 }
 
@@ -53,6 +56,6 @@
 }
 
 .comm-card--empty {
-  border: 1.5px dashed rgba(255,255,255,0.08);
+  border: 1.5px dashed rgba(255,255,255,0.06);
   background: rgba(255,255,255,0.01);
 }
