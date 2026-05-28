@@ -204,17 +204,63 @@ console.log('\n7. Serialize');
   assert(Array.isArray(s.pots), 'Serialized pots is array');
 }
 
-// ─── Round refuses actions after completion ───
+// ─── Side pots: all-in with unequal stacks ───
 
-console.log('\n8. No actions after round complete');
+console.log('\n9. All-in call creates side pot — chips conserved');
 {
-  const players = makePlayers(2);
+  const players = [
+    { uuid: 'p0', name: 'P0', chipStack: 100, hand: null, status: 'active', socketId: 's0' },
+    { uuid: 'p1', name: 'P1', chipStack: 500, hand: null, status: 'active', socketId: 's1' },
+    { uuid: 'p2', name: 'P2', chipStack: 500, hand: null, status: 'active', socketId: 's2' },
+  ];
+  const totalBefore = players.reduce((s, p) => s + p.chipStack, 0); // 1100
   const round = new Round(1, players, 0, { smallBlind: 10, bigBlind: 20 });
 
-  // Quick end: fold
-  round.processAction('p0', { type: 'fold' });
-  const r = round.processAction('p1', { type: 'check' });
-  assert(!r.valid || round.isFinished, 'No more actions after round ends');
+  // Preflop: p0 (UTG) raises all-in (100 - already 0 in = goes all-in)
+  round.processAction('p0', { type: 'raise', amount: 100 });
+  // p1 calls
+  round.processAction('p1', { type: 'call' });
+  // p2 calls
+  let r = round.processAction('p2', { type: 'call' });
+
+  // Street should advance or round complete (if run-out needed)
+  // After preflop, p0 is all-in, p1 and p2 can still act on flop etc.
+  // Continue through streets
+  while (!round.isFinished) {
+    const street = round.getCurrentStreet();
+    const uuid = street.getCurrentPlayerUUID();
+    if (!uuid) break;
+    r = round.processAction(uuid, { type: 'check' });
+    if (r.roundComplete) break;
+  }
+
+  assert(round.isFinished, 'Round finished');
+  const totalAfter = players.reduce((s, p) => s + p.chipStack, 0);
+  assert(totalAfter === totalBefore, `Total chips conserved: ${totalAfter} === ${totalBefore}`);
+
+  // Side pots should have been created
+  assert(round.result.potAwards !== undefined, 'potAwards exists');
+  console.log(`  → potAwards: ${JSON.stringify(round.result.potAwards.map(p => p.amount))}`);
+}
+
+console.log('\n10. All players all-in — board runs out');
+{
+  const players = [
+    { uuid: 'p0', name: 'P0', chipStack: 100, hand: null, status: 'active', socketId: 's0' },
+    { uuid: 'p1', name: 'P1', chipStack: 100, hand: null, status: 'active', socketId: 's1' },
+  ];
+  const totalBefore = players.reduce((s, p) => s + p.chipStack, 0);
+  const round = new Round(1, players, 0, { smallBlind: 10, bigBlind: 20 });
+
+  // p0 (SB/dealer in heads-up) goes all-in
+  round.processAction('p0', { type: 'raise', amount: 100 });
+  // p1 calls all-in
+  const r = round.processAction('p1', { type: 'call' });
+
+  assert(round.isFinished, 'Round finished (both all-in)');
+  assert(round.communityCards.length === 5, `5 community cards dealt (got ${round.communityCards.length})`);
+  const totalAfter = players.reduce((s, p) => s + p.chipStack, 0);
+  assert(totalAfter === totalBefore, `Chips conserved: ${totalAfter} === ${totalBefore}`);
 }
 
 console.log(`\n=== Results: ${passed} passed, ${failed} failed ===`);

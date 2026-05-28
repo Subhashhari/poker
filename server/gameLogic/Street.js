@@ -2,65 +2,89 @@
  * Street — owns all betting logic for a single street.
  *
  * Tracks turns, validates actions, detects betting round completion
- * using a `needsToAct` set.
+ * using a `needsToAct` set. Handles all-in: when a player commits
+ * all remaining chips, they're marked all-in and skip future actions.
  */
 class Street {
   /**
    * @param {string} name — 'preflop' | 'flop' | 'turn' | 'river'
    * @param {Array} communityCards — cards visible on this street
-   * @param {Array<{uuid: string}>} activePlayers — ordered list of active players
+   * @param {Array<{uuid: string, chipStack: number}>} activePlayers — ordered list
    * @param {number} firstToActIndex — index into activePlayers for who acts first
+   * @param {Set<string>} [allInUUIDs] — players already all-in from prior streets
    */
-  constructor(name, communityCards, activePlayers, firstToActIndex) {
+  constructor(name, communityCards, activePlayers, firstToActIndex, allInUUIDs = new Set()) {
     this.name = name;
     this.communityCards = [...communityCards];
     this.actions = [];
     this.currentBet = 0;
-    this.activePlayers = activePlayers; // reference — ordered, may include players who fold during this street
+    this.activePlayers = activePlayers;
     this.currentPlayerIndex = firstToActIndex;
     this.playerContributions = new Map(); // uuid → amount contributed THIS street
-    this.needsToAct = new Set(activePlayers.map(p => p.uuid));
-    this.foldedThisStreet = new Set(); // track who folded during this street
+    this.foldedThisStreet = new Set();
+    this.allInUUIDs = new Set(allInUUIDs); // players who are all-in (can't act)
+
+    // needsToAct: everyone except folded and all-in
+    this.needsToAct = new Set();
+    for (const p of activePlayers) {
+      if (!this.allInUUIDs.has(p.uuid)) {
+        this.needsToAct.add(p.uuid);
+      }
+    }
+
+    // If the initial player is all-in, advance to the next acting player
+    if (this.allInUUIDs.has(activePlayers[firstToActIndex]?.uuid)) {
+      this._advanceToNextActingPlayer();
+    }
   }
 
   /**
-   * Get the UUID of the player whose turn it is.
+   * Advance currentPlayerIndex to next player who needs to act (not folded, not all-in).
    */
+  _advanceToNextActingPlayer() {
+    const n = this.activePlayers.length;
+    for (let i = 0; i < n; i++) {
+      this.currentPlayerIndex = (this.currentPlayerIndex + 1) % n;
+      const uuid = this.activePlayers[this.currentPlayerIndex].uuid;
+      if (this.needsToAct.has(uuid) && !this.foldedThisStreet.has(uuid) && !this.allInUUIDs.has(uuid)) {
+        return;
+      }
+    }
+  }
+
   getCurrentPlayerUUID() {
     if (this.isComplete()) return null;
     return this.activePlayers[this.currentPlayerIndex].uuid;
   }
 
-  /**
-   * Get how much a player needs to call.
-   */
   getCallAmount(playerUUID) {
     const contributed = this.playerContributions.get(playerUUID) || 0;
     return this.currentBet - contributed;
   }
 
   /**
-   * Determine what actions are valid for a player.
+   * Get the chip stack of a player.
    */
+  _getStack(playerUUID) {
+    const p = this.activePlayers.find(p => p.uuid === playerUUID);
+    return p ? p.chipStack : 0;
+  }
+
   getValidActions(playerUUID) {
     if (this.getCurrentPlayerUUID() !== playerUUID) return [];
 
     const callAmount = this.getCallAmount(playerUUID);
+    const stack = this._getStack(playerUUID);
     const actions = ['fold'];
 
     if (callAmount === 0) {
       actions.push('check');
-      actions.push('bet'); // opening bet when no one has bet yet
+      if (stack > 0) actions.push('bet');
     } else {
-      actions.push('call');
+      actions.push('call'); // may be a partial call (all-in)
     }
 
-    // Raise is always available when there's a current bet
-    // Bet is the opening action (currentBet is 0 or player has matched)
-    if (callAmount > 0) {
-      actions.push('raise');
-    } else if (this.currentBet > 0) {
-      // Someone bet/raised, player has already matched — they can raise
+    if (this.currentBet > 0 && stack > callAmount) {
       actions.push('raise');
     }
 
@@ -69,14 +93,10 @@ class Street {
 
   /**
    * Process a player's action.
-   * @param {string} playerUUID
-   * @param {{ type: string, amount?: number }} action
-   * @returns {{ valid: boolean, error?: string, action?: object }}
+   * Handles all-in automatically when a player commits all chips.
    */
   processAction(playerUUID, action) {
-    // Blinds bypass turn validation — they're posted programmatically
     if (action.type !== 'blind') {
-      // Validate it's this player's turn
       if (this.getCurrentPlayerUUID() !== playerUUID) {
         return { valid: false, error: 'Not your turn' };
       }
@@ -84,6 +104,7 @@ class Street {
 
     const callAmount = this.getCallAmount(playerUUID);
     const contributed = this.playerContributions.get(playerUUID) || 0;
+    const stack = this._getStack(playerUUID);
 
     let recordedAction;
 
@@ -108,9 +129,18 @@ class Street {
         if (callAmount <= 0) {
           return { valid: false, error: 'Nothing to call — use check' };
         }
-        recordedAction = { playerUUID, type: 'call', amount: callAmount, chipsDelta: callAmount };
-        this.playerContributions.set(playerUUID, contributed + callAmount);
+        // All-in call: player can't afford full call
+        const actualCall = Math.min(callAmount, stack);
+        const isAllIn = actualCall >= stack;
+        const actionType = isAllIn ? 'all-in' : 'call';
+
+        recordedAction = { playerUUID, type: actionType, amount: actualCall, chipsDelta: actualCall };
+        this.playerContributions.set(playerUUID, contributed + actualCall);
         this.needsToAct.delete(playerUUID);
+
+        if (isAllIn) {
+          this.allInUUIDs.add(playerUUID);
+        }
         break;
       }
 
@@ -118,15 +148,28 @@ class Street {
         if (this.currentBet > 0) {
           return { valid: false, error: 'Cannot open bet — there is already a bet. Use raise.' };
         }
-        const betAmount = action.amount;
+        let betAmount = action.amount;
         if (!betAmount || betAmount <= 0) {
           return { valid: false, error: 'Bet amount must be positive' };
         }
-        recordedAction = { playerUUID, type: 'bet', amount: betAmount, chipsDelta: betAmount };
+
+        // All-in bet
+        const isAllIn = betAmount >= stack;
+        if (isAllIn) betAmount = stack;
+
+        recordedAction = {
+          playerUUID,
+          type: isAllIn ? 'all-in' : 'bet',
+          amount: betAmount,
+          chipsDelta: betAmount,
+        };
         this.currentBet = betAmount;
         this.playerContributions.set(playerUUID, contributed + betAmount);
 
-        // Everyone else needs to act again
+        if (isAllIn) {
+          this.allInUUIDs.add(playerUUID);
+        }
+
         this._resetNeedsToActExcept(playerUUID);
         break;
       }
@@ -135,29 +178,53 @@ class Street {
         if (this.currentBet <= 0 && callAmount <= 0) {
           return { valid: false, error: 'Cannot raise — no bet to raise. Use bet.' };
         }
-        const raiseAmount = action.amount;
+        let raiseAmount = action.amount;
         if (!raiseAmount || raiseAmount <= this.currentBet) {
           return { valid: false, error: `Raise must be above current bet (${this.currentBet})` };
         }
-        const chipsDelta = raiseAmount - contributed;
-        recordedAction = { playerUUID, type: 'raise', amount: raiseAmount, chipsDelta };
-        this.currentBet = raiseAmount;
-        this.playerContributions.set(playerUUID, raiseAmount);
 
-        // Everyone else needs to act again
+        const chipsDelta = raiseAmount - contributed;
+        // All-in raise
+        const isAllIn = chipsDelta >= stack;
+        const actualDelta = isAllIn ? stack : chipsDelta;
+        const actualTotal = contributed + actualDelta;
+
+        recordedAction = {
+          playerUUID,
+          type: isAllIn ? 'all-in' : 'raise',
+          amount: actualTotal,
+          chipsDelta: actualDelta,
+        };
+        this.currentBet = actualTotal;
+        this.playerContributions.set(playerUUID, actualTotal);
+
+        if (isAllIn) {
+          this.allInUUIDs.add(playerUUID);
+        }
+
         this._resetNeedsToActExcept(playerUUID);
         break;
       }
 
       case 'blind': {
-        // Blinds are posted programmatically, not by player action
         const blindAmount = action.amount;
-        recordedAction = { playerUUID, type: 'blind', amount: blindAmount, chipsDelta: blindAmount };
-        this.playerContributions.set(playerUUID, contributed + blindAmount);
-        if (blindAmount > this.currentBet) {
-          this.currentBet = blindAmount;
+        const isAllIn = blindAmount >= stack;
+        const actualBlind = isAllIn ? stack : blindAmount;
+
+        recordedAction = {
+          playerUUID,
+          type: isAllIn ? 'all-in' : 'blind',
+          amount: actualBlind,
+          chipsDelta: actualBlind,
+        };
+        this.playerContributions.set(playerUUID, contributed + actualBlind);
+        if (actualBlind > this.currentBet) {
+          this.currentBet = actualBlind;
         }
-        // Don't remove from needsToAct — blind poster still gets to act
+        if (isAllIn) {
+          this.allInUUIDs.add(playerUUID);
+          this.needsToAct.delete(playerUUID);
+        }
         break;
       }
 
@@ -167,7 +234,6 @@ class Street {
 
     this.actions.push(recordedAction);
 
-    // Advance to next player (skip folded and already-acted)
     if (action.type !== 'blind') {
       this._advanceToNextPlayer();
     }
@@ -175,31 +241,20 @@ class Street {
     return { valid: true, action: recordedAction };
   }
 
-  /**
-   * Is the betting round complete?
-   */
   isComplete() {
     return this.needsToAct.size === 0;
   }
 
-  /**
-   * Get count of players still active (not folded) in this street.
-   */
   getActivePlayerCount() {
-    return this.activePlayers.filter(p => !this.foldedThisStreet.has(p.uuid)).length;
+    return this.activePlayers.filter(p =>
+      !this.foldedThisStreet.has(p.uuid)
+    ).length;
   }
 
-  /**
-   * Get the players who haven't folded this street.
-   */
   getActivePlayers() {
     return this.activePlayers.filter(p => !this.foldedThisStreet.has(p.uuid));
   }
 
-  /**
-   * Advance currentPlayerIndex to the next player who needs to act.
-   * Skips folded players.
-   */
   _advanceToNextPlayer() {
     if (this.isComplete()) return;
 
@@ -209,27 +264,21 @@ class Street {
       this.currentPlayerIndex = (this.currentPlayerIndex + 1) % n;
       attempts++;
       const uuid = this.activePlayers[this.currentPlayerIndex].uuid;
-      if (this.needsToAct.has(uuid) && !this.foldedThisStreet.has(uuid)) {
+      if (this.needsToAct.has(uuid) && !this.foldedThisStreet.has(uuid) && !this.allInUUIDs.has(uuid)) {
         return;
       }
     } while (attempts < n);
   }
 
-  /**
-   * Reset needsToAct to all non-folded players except the given UUID.
-   */
   _resetNeedsToActExcept(excludeUUID) {
     this.needsToAct.clear();
     for (const p of this.activePlayers) {
-      if (p.uuid !== excludeUUID && !this.foldedThisStreet.has(p.uuid)) {
+      if (p.uuid !== excludeUUID && !this.foldedThisStreet.has(p.uuid) && !this.allInUUIDs.has(p.uuid)) {
         this.needsToAct.add(p.uuid);
       }
     }
   }
 
-  /**
-   * Serialize for client.
-   */
   serialize() {
     return {
       name: this.name,
@@ -238,6 +287,7 @@ class Street {
       currentBet: this.currentBet,
       currentPlayerUUID: this.getCurrentPlayerUUID(),
       playerContributions: Object.fromEntries(this.playerContributions),
+      allInUUIDs: [...this.allInUUIDs],
     };
   }
 }

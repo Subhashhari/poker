@@ -1,20 +1,19 @@
 import { Deck } from './Deck.js';
 import { Street } from './Street.js';
 import { PotManager } from './PotManager.js';
-import { findWinner, handRankName } from './HandEvaluator.js';
+import { evaluateBestHand, compareHands, handRankName } from './HandEvaluator.js';
 
 /**
  * Round — manages streets within a single hand.
  *
  * Orchestrates: blinds → preflop → flop → turn → river → showdown.
- * Delegates all betting logic to Street.
- * Uses chipsDelta from Street actions for clean pot/chipStack tracking.
+ * Handles all-in and side-pot resolution.
  */
 class Round {
   /**
    * @param {number} roundNumber
-   * @param {Array<{uuid, name, chipStack, hand?, status}>} players — active players for this round
-   * @param {number} dealerIndex — index into players for the dealer
+   * @param {Array<{uuid, name, chipStack, hand?, status}>} players
+   * @param {number} dealerIndex
    * @param {{ smallBlind: number, bigBlind: number }} config
    */
   constructor(roundNumber, players, dealerIndex, config) {
@@ -24,16 +23,13 @@ class Round {
     this.config = config;
     this.potManager = new PotManager();
     this.communityCards = [];
-    this.winnerId = null;
-    this.winnerHand = null;
     this.isFinished = false;
-    this.result = null; // set when round ends
+    this.result = null;
+    this.allInUUIDs = new Set(); // tracks who is all-in across streets
 
     const n = players.length;
 
-    // Compute SB and BB positions
     if (n === 2) {
-      // Heads-up: dealer is SB, other is BB
       this.smallBlindIndex = dealerIndex;
       this.bigBlindIndex = (dealerIndex + 1) % n;
     } else {
@@ -41,17 +37,14 @@ class Round {
       this.bigBlindIndex = (dealerIndex + 2) % n;
     }
 
-    // Create and shuffle deck
     this.deck = new Deck();
     this.deck.shuffle();
 
-    // Deal hole cards
     for (const player of this.players) {
       player.hand = this.deck.deal(2);
       player.status = 'active';
     }
 
-    // Determine first to act preflop
     let firstToActIndex;
     if (n === 2) {
       firstToActIndex = this.smallBlindIndex;
@@ -59,19 +52,20 @@ class Round {
       firstToActIndex = (this.bigBlindIndex + 1) % n;
     }
 
-    // Create preflop street and post blinds
     const preflopStreet = new Street('preflop', [], this.players, firstToActIndex);
 
     this._postBlind(preflopStreet, this.smallBlindIndex, config.smallBlind);
     this._postBlind(preflopStreet, this.bigBlindIndex, config.bigBlind);
 
+    // Carry any blinds-induced all-ins into our tracking
+    for (const uuid of preflopStreet.allInUUIDs) {
+      this.allInUUIDs.add(uuid);
+    }
+
     this.streets = [preflopStreet];
     this.currentStreetIndex = 0;
   }
 
-  /**
-   * Post a blind: process blind action, deduct chips, contribute to pot.
-   */
   _postBlind(street, playerIndex, amount) {
     const player = this.players[playerIndex];
     const blindAmount = Math.min(amount, player.chipStack);
@@ -82,24 +76,21 @@ class Round {
     }
   }
 
-  /**
-   * Get the current street.
-   */
   getCurrentStreet() {
     return this.streets[this.currentStreetIndex];
   }
 
-  /**
-   * Get the non-folded players across all streets in this round.
-   */
   getActivePlayers() {
     return this.players.filter(p => p.status === 'active');
   }
 
   /**
-   * Process a player action.
-   * @returns {{ valid: boolean, error?: string, roundComplete?: boolean, streetAdvanced?: boolean, result?: object }}
+   * Players who can still act (active and not all-in).
    */
+  getActingPlayers() {
+    return this.players.filter(p => p.status === 'active' && !this.allInUUIDs.has(p.uuid));
+  }
+
   processAction(playerUUID, action) {
     if (this.isFinished) {
       return { valid: false, error: 'Round is already finished' };
@@ -117,32 +108,42 @@ class Round {
       this.potManager.contribute(playerUUID, result.action.chipsDelta);
     }
 
-    // If player folded, update their status and pot eligibility
+    // Track all-in
+    if (result.action.type === 'all-in') {
+      this.allInUUIDs.add(playerUUID);
+    }
+
+    // If player folded, update status and pot eligibility
     if (action.type === 'fold') {
       const player = this.players.find(p => p.uuid === playerUUID);
-      // Preserve 'disconnected' status — don't override with 'folded'
       if (player.status !== 'disconnected') {
         player.status = 'folded';
       }
       this.potManager.removeEligibility(playerUUID);
     }
 
-    // Check if only one player remains — immediate win
+    // Check if only one player remains (not folded)
     const activePlayers = this.getActivePlayers();
     if (activePlayers.length === 1) {
-      // Award pot to the last player standing
       const winner = activePlayers[0];
       winner.chipStack += this.potManager.getTotal();
-      this._endRound(winner.uuid, null, 'last-standing');
+      this._endRound('last-standing', [{ winnerUUIDs: [winner.uuid], amount: this.potManager.getTotal() }]);
       return { valid: true, action: result.action, roundComplete: true, result: this.result };
     }
 
     // Check if street is complete
     if (street.isComplete()) {
-      // Try to advance to next street or go to showdown
+      // If all remaining players are all-in (or only 1 can act), run out community cards
+      const actingPlayers = this.getActingPlayers();
+      if (actingPlayers.length <= 1) {
+        // Run out remaining streets without betting
+        this._runOutBoard();
+        this._handleShowdown();
+        return { valid: true, action: result.action, roundComplete: true, result: this.result };
+      }
+
       const advanced = this._advanceStreet();
       if (!advanced) {
-        // Showdown
         this._handleShowdown();
         return { valid: true, action: result.action, roundComplete: true, result: this.result };
       }
@@ -153,48 +154,55 @@ class Round {
   }
 
   /**
-   * Advance to the next street. Returns false if we're at showdown (river was the last).
+   * Deal remaining community cards when all players are all-in.
    */
+  _runOutBoard() {
+    const streetOrder = ['preflop', 'flop', 'turn', 'river'];
+    const currentName = this.getCurrentStreet().name;
+    let idx = streetOrder.indexOf(currentName);
+
+    while (idx < streetOrder.length - 1) {
+      idx++;
+      const nextName = streetOrder[idx];
+      const count = nextName === 'flop' ? 3 : 1;
+      this.communityCards.push(...this.deck.deal(count));
+    }
+  }
+
   _advanceStreet() {
     const streetOrder = ['preflop', 'flop', 'turn', 'river'];
     const currentName = this.getCurrentStreet().name;
     const currentIdx = streetOrder.indexOf(currentName);
 
-    if (currentIdx >= streetOrder.length - 1) {
-      // River is done — showdown
-      return false;
-    }
+    if (currentIdx >= streetOrder.length - 1) return false;
 
     const nextStreetName = streetOrder[currentIdx + 1];
 
-    // Deal community cards
     let newCards;
     if (nextStreetName === 'flop') {
       newCards = this.deck.deal(3);
     } else {
-      newCards = this.deck.deal(1); // turn or river
+      newCards = this.deck.deal(1);
     }
     this.communityCards.push(...newCards);
 
-    // Determine first to act post-flop: first active player left of dealer
     const activePlayers = this.getActivePlayers();
     const n = this.players.length;
     let firstToActIndex = -1;
     for (let offset = 1; offset <= n; offset++) {
       const idx = (this.dealerIndex + offset) % n;
       if (this.players[idx].status === 'active') {
-        // Map back to activePlayers list index
         firstToActIndex = activePlayers.indexOf(this.players[idx]);
         break;
       }
     }
 
-    // Create new street with only active players
     const newStreet = new Street(
       nextStreetName,
       [...this.communityCards],
       activePlayers,
-      firstToActIndex >= 0 ? firstToActIndex : 0
+      firstToActIndex >= 0 ? firstToActIndex : 0,
+      this.allInUUIDs // pass existing all-in players
     );
 
     this.streets.push(newStreet);
@@ -203,72 +211,89 @@ class Round {
   }
 
   /**
-   * Handle showdown — evaluate hands and award pot.
+   * Handle showdown — uses PotManager.resolvePots for proper side-pot resolution.
    */
   _handleShowdown() {
     const activePlayers = this.getActivePlayers();
-    const result = findWinner(activePlayers, this.communityCards);
 
-    if (result.isTie) {
-      // Split pot evenly among tied players
-      const potResults = this.potManager.resolvePots((eligibleUUIDs) => {
-        // Among eligible and tied, pick first (simplification for v1 — true split handled below)
-        return result.tiedPlayerUUIDs.find(uuid => eligibleUUIDs.includes(uuid)) || eligibleUUIDs[0];
+    const results = this.potManager.resolvePots((eligibleUUIDs) => {
+      // Find the best hand(s) among eligible players
+      const eligible = activePlayers.filter(p => eligibleUUIDs.includes(p.uuid));
+      if (eligible.length === 0) return { winnerUUIDs: eligibleUUIDs, isTie: false };
+      if (eligible.length === 1) return { winnerUUIDs: [eligible[0].uuid], isTie: false };
+
+      // Evaluate each player's best hand
+      const evaluated = eligible.map(p => ({
+        uuid: p.uuid,
+        hand: evaluateBestHand(p.hand, this.communityCards),
+      }));
+
+      // Sort by hand strength (descending)
+      evaluated.sort((a, b) => {
+        const cmp = compareHands(a.hand, b.hand);
+        return -cmp; // descending: best first
       });
 
-      // Split pot among tied players
-      const totalPot = this.potManager.getTotal();
-      const splitAmount = Math.floor(totalPot / result.tiedPlayerUUIDs.length);
-      const remainder = totalPot % result.tiedPlayerUUIDs.length;
+      // Check for ties with the best hand
+      const bestHandResult = evaluated[0].hand;
+      const winners = evaluated.filter(e => compareHands(e.hand, bestHandResult) === 0);
 
-      for (let i = 0; i < result.tiedPlayerUUIDs.length; i++) {
-        const player = this.players.find(p => p.uuid === result.tiedPlayerUUIDs[i]);
-        player.chipStack += splitAmount + (i === 0 ? remainder : 0);
+      return {
+        winnerUUIDs: winners.map(w => w.uuid),
+        isTie: winners.length > 1,
+      };
+    });
+
+    // Award each pot
+    const potAwards = [];
+    for (const potResult of results) {
+      const share = Math.floor(potResult.amount / potResult.winnerUUIDs.length);
+      const remainder = potResult.amount % potResult.winnerUUIDs.length;
+
+      for (let i = 0; i < potResult.winnerUUIDs.length; i++) {
+        const player = this.players.find(p => p.uuid === potResult.winnerUUIDs[i]);
+        player.chipStack += share + (i === 0 ? remainder : 0);
       }
 
-      this._endRound(result.tiedPlayerUUIDs[0], result.hand, 'showdown-tie', result.tiedPlayerUUIDs);
-    } else {
-      // Single winner — award entire pot
-      const totalPot = this.potManager.getTotal();
-      const winner = this.players.find(p => p.uuid === result.winnerUUID);
-      winner.chipStack += totalPot;
-
-      this._endRound(result.winnerUUID, result.hand, 'showdown');
+      potAwards.push({
+        winnerUUIDs: potResult.winnerUUIDs,
+        amount: potResult.amount,
+      });
     }
+
+    // Determine overall winner for result reporting
+    const mainPotWinner = potAwards[0]?.winnerUUIDs[0];
+    const mainWinnerPlayer = activePlayers.find(p => p.uuid === mainPotWinner);
+    const mainHand = mainWinnerPlayer ? evaluateBestHand(mainWinnerPlayer.hand, this.communityCards) : null;
+
+    this._endRound(
+      potAwards.length > 1 ? 'showdown-sidepots' : potAwards[0]?.winnerUUIDs.length > 1 ? 'showdown-tie' : 'showdown',
+      potAwards,
+      mainHand
+    );
   }
 
-  /**
-   * End the round and set the result.
-   */
-  _endRound(winnerUUID, hand, reason, tiedPlayerUUIDs = null) {
+  _endRound(reason, potAwards, hand = null) {
     this.isFinished = true;
-    this.winnerId = winnerUUID;
-    this.winnerHand = hand;
     this.result = {
-      winnerUUID,
+      winnerUUID: potAwards[0]?.winnerUUIDs[0] || null,
       hand,
       handName: hand ? handRankName(hand.handRank) : null,
-      reason, // 'showdown', 'showdown-tie', 'last-standing'
+      reason,
       pot: this.potManager.getTotal(),
-      tiedPlayerUUIDs,
+      potAwards,
       updatedStacks: this.players.map(p => ({ uuid: p.uuid, chipStack: p.chipStack })),
     };
   }
 
-  /**
-   * Auto-fold for a disconnected player.
-   */
   autoFold(playerUUID) {
     const street = this.getCurrentStreet();
     if (street.getCurrentPlayerUUID() === playerUUID) {
       return this.processAction(playerUUID, { type: 'fold' });
     }
-    return { valid: false, error: 'Not this player\'s turn' };
+    return { valid: false, error: "Not this player's turn" };
   }
 
-  /**
-   * Serialize for client.
-   */
   serialize() {
     return {
       roundNumber: this.roundNumber,

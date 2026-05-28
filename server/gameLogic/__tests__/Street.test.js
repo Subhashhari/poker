@@ -18,14 +18,12 @@ function assert(condition, msg) {
 }
 
 const players = [
-  { uuid: 'p0' },
-  { uuid: 'p1' },
-  { uuid: 'p2' },
+  { uuid: 'p0', chipStack: 1000 },
+  { uuid: 'p1', chipStack: 1000 },
+  { uuid: 'p2', chipStack: 1000 },
 ];
 
 console.log('=== Street Tests ===\n');
-
-// ─── Basic construction ───
 
 console.log('1. Construction');
 {
@@ -38,12 +36,9 @@ console.log('1. Construction');
   assert(street.needsToAct.size === 3, 'All 3 players need to act');
 }
 
-// ─── Check-around completes the street ───
-
 console.log('2. All check — round completes');
 {
   const street = new Street('flop', [], players, 0);
-
   let r = street.processAction('p0', { type: 'check' });
   assert(r.valid, 'p0 check valid');
   assert(street.getCurrentPlayerUUID() === 'p1', 'Turn moves to p1');
@@ -58,12 +53,9 @@ console.log('2. All check — round completes');
   assert(street.actions.length === 3, '3 actions recorded');
 }
 
-// ─── Bet → Call → Call ───
-
 console.log('3. Bet → Call → Call');
 {
   const street = new Street('turn', [], players, 0);
-
   let r = street.processAction('p0', { type: 'bet', amount: 50 });
   assert(r.valid, 'p0 bet valid');
   assert(street.currentBet === 50, 'Current bet is 50');
@@ -77,25 +69,20 @@ console.log('3. Bet → Call → Call');
   assert(street.isComplete(), 'Street complete after all match');
 }
 
-// ─── Bet → Raise → Call → Call ───
-
 console.log('4. Bet → Raise → re-action required');
 {
   const street = new Street('flop', [], players, 0);
-
   street.processAction('p0', { type: 'bet', amount: 50 });
   street.processAction('p1', { type: 'raise', amount: 100 });
 
   assert(street.currentBet === 100, 'Current bet raised to 100');
   assert(street.getCurrentPlayerUUID() === 'p2', 'Turn moves to p2');
 
-  // p2 calls
   let r = street.processAction('p2', { type: 'call' });
   assert(r.valid, 'p2 call valid');
   assert(r.action.amount === 100, 'p2 calls 100');
   assert(!street.isComplete(), 'Street NOT complete — p0 still needs to act');
 
-  // p0 must act again (they only put in 50, raise was to 100)
   assert(street.getCurrentPlayerUUID() === 'p0', 'Turn back to p0');
   r = street.processAction('p0', { type: 'call' });
   assert(r.valid, 'p0 call valid');
@@ -103,12 +90,9 @@ console.log('4. Bet → Raise → re-action required');
   assert(street.isComplete(), 'Street complete now');
 }
 
-// ─── Fold reduces active players ───
-
 console.log('5. Fold');
 {
   const street = new Street('flop', [], players, 0);
-
   let r = street.processAction('p0', { type: 'fold' });
   assert(r.valid, 'p0 fold valid');
   assert(street.getActivePlayerCount() === 2, '2 active after fold');
@@ -121,8 +105,6 @@ console.log('5. Fold');
   assert(street.isComplete(), 'Street complete');
 }
 
-// ─── Wrong player acting ───
-
 console.log('6. Wrong player error');
 {
   const street = new Street('flop', [], players, 0);
@@ -130,8 +112,6 @@ console.log('6. Wrong player error');
   assert(!r.valid, 'p1 acting out of turn is invalid');
   assert(r.error === 'Not your turn', 'Correct error message');
 }
-
-// ─── Cannot check when there's a bet ───
 
 console.log('7. Cannot check when bet exists');
 {
@@ -141,16 +121,12 @@ console.log('7. Cannot check when bet exists');
   assert(!r.valid, 'Cannot check when there is a bet');
 }
 
-// ─── Cannot call when nothing to call ───
-
 console.log('8. Cannot call when no bet');
 {
   const street = new Street('flop', [], players, 0);
   const r = street.processAction('p0', { type: 'call' });
   assert(!r.valid, 'Cannot call when there is no bet');
 }
-
-// ─── Raise must be above current bet ───
 
 console.log('9. Raise validation');
 {
@@ -167,38 +143,27 @@ console.log('9. Raise validation');
   assert(r.valid, 'Raise above current bet is valid');
 }
 
-// ─── Preflop with blinds ───
-
 console.log('10. Preflop with blinds');
 {
-  // Simulate: p0 = dealer, p1 = SB, p2 = BB
-  // firstToAct = p0 (UTG, which is left of BB, wraps around to dealer in 3-player)
   const street = new Street('preflop', [], players, 0);
-
-  // Post blinds (done programmatically before player actions)
   street.processAction('p1', { type: 'blind', amount: 10 });
   street.processAction('p2', { type: 'blind', amount: 20 });
 
   assert(street.currentBet === 20, 'Current bet is 20 (big blind)');
   assert(street.getCurrentPlayerUUID() === 'p0', 'UTG (p0) acts first');
 
-  // p0 calls
   street.processAction('p0', { type: 'call' });
   assert(street.getCurrentPlayerUUID() === 'p1', 'SB acts next');
 
-  // p1 calls (needs 10 more, already put in 10)
   let r = street.processAction('p1', { type: 'call' });
   assert(r.valid, 'SB call valid');
   assert(r.action.amount === 10, 'SB pays 10 more');
   assert(street.getCurrentPlayerUUID() === 'p2', 'BB acts last');
 
-  // BB checks (option)
   r = street.processAction('p2', { type: 'check' });
   assert(r.valid, 'BB check valid');
   assert(street.isComplete(), 'Preflop complete');
 }
-
-// ─── Preflop: BB raise ───
 
 console.log('11. Preflop — BB raises');
 {
@@ -206,21 +171,17 @@ console.log('11. Preflop — BB raises');
   street.processAction('p1', { type: 'blind', amount: 10 });
   street.processAction('p2', { type: 'blind', amount: 20 });
 
-  street.processAction('p0', { type: 'call' }); // UTG calls 20
-  street.processAction('p1', { type: 'call' }); // SB calls 10 more
-  // BB raises instead of checking
+  street.processAction('p0', { type: 'call' });
+  street.processAction('p1', { type: 'call' });
   street.processAction('p2', { type: 'raise', amount: 60 });
 
   assert(!street.isComplete(), 'Street not complete after BB raise');
   assert(street.currentBet === 60, 'Current bet is 60');
 
-  // p0 and p1 need to act again
-  street.processAction('p0', { type: 'call' }); // calls 40 more
-  street.processAction('p1', { type: 'call' }); // calls 50 more (10+10 already in, need 60 total)
+  street.processAction('p0', { type: 'call' });
+  street.processAction('p1', { type: 'call' });
   assert(street.isComplete(), 'Complete after everyone matches BB raise');
 }
-
-// ─── All fold to one player ───
 
 console.log('12. All fold to last player');
 {
@@ -232,8 +193,6 @@ console.log('12. All fold to last player');
   assert(street.getActivePlayerCount() === 1, 'One player remains');
   assert(street.getActivePlayers()[0].uuid === 'p0', 'p0 is the remaining player');
 }
-
-// ─── Serialize ───
 
 console.log('13. Serialize');
 {
@@ -247,20 +206,15 @@ console.log('13. Serialize');
   assert(s.communityCards.length === 1, 'Serialized community cards');
 }
 
-// ─── getValidActions ───
-
 console.log('14. getValidActions');
 {
   const street = new Street('flop', [], players, 0);
-
-  // No bet yet — can check, bet, fold
   let valid = street.getValidActions('p0');
   assert(valid.includes('check'), 'Can check when no bet');
   assert(valid.includes('bet'), 'Can bet when no bet');
   assert(valid.includes('fold'), 'Can always fold');
   assert(!valid.includes('call'), 'Cannot call when no bet');
 
-  // After a bet — can call, raise, fold
   street.processAction('p0', { type: 'bet', amount: 50 });
   valid = street.getValidActions('p1');
   assert(valid.includes('call'), 'Can call when there is a bet');
@@ -269,16 +223,95 @@ console.log('14. getValidActions');
   assert(!valid.includes('check'), 'Cannot check when there is a bet');
 }
 
-// ─── Heads-up (2 players) ───
-
 console.log('15. Heads-up — 2 players');
 {
-  const headsUp = [{ uuid: 'a' }, { uuid: 'b' }];
+  const headsUp = [{ uuid: 'a', chipStack: 500 }, { uuid: 'b', chipStack: 500 }];
   const street = new Street('flop', [], headsUp, 0);
-
   street.processAction('a', { type: 'bet', amount: 30 });
   street.processAction('b', { type: 'call' });
   assert(street.isComplete(), 'Heads-up completes after bet + call');
+}
+
+// ─── ALL-IN TESTS ───
+
+console.log('\n16. All-in call — partial call');
+{
+  const p = [
+    { uuid: 'rich', chipStack: 1000 },
+    { uuid: 'poor', chipStack: 50 },
+  ];
+  const street = new Street('flop', [], p, 0);
+  street.processAction('rich', { type: 'bet', amount: 200 });
+
+  const r = street.processAction('poor', { type: 'call' });
+  assert(r.valid, 'Partial call valid');
+  assert(r.action.type === 'all-in', `Action type is all-in (got ${r.action.type})`);
+  assert(r.action.chipsDelta === 50, `chipsDelta is 50 (got ${r.action.chipsDelta})`);
+  assert(street.allInUUIDs.has('poor'), 'poor is all-in');
+  assert(street.isComplete(), 'Street complete (only 2 players, both acted)');
+}
+
+console.log('17. All-in bet');
+{
+  const p = [
+    { uuid: 'x', chipStack: 80 },
+    { uuid: 'y', chipStack: 500 },
+  ];
+  const street = new Street('flop', [], p, 0);
+  const r = street.processAction('x', { type: 'bet', amount: 200 }); // wants 200 but only has 80
+  assert(r.valid, 'All-in bet valid');
+  assert(r.action.type === 'all-in', 'Type is all-in');
+  assert(r.action.chipsDelta === 80, `Delta is 80 (stack) — got ${r.action.chipsDelta}`);
+  assert(street.currentBet === 80, `Current bet is 80 (got ${street.currentBet})`);
+}
+
+console.log('18. All-in raise');
+{
+  const p = [
+    { uuid: 'a', chipStack: 1000 },
+    { uuid: 'b', chipStack: 120 },
+    { uuid: 'c', chipStack: 1000 },
+  ];
+  const street = new Street('flop', [], p, 0);
+  street.processAction('a', { type: 'bet', amount: 100 });
+
+  // b wants to raise to 200, but only has 120
+  const r = street.processAction('b', { type: 'raise', amount: 200 });
+  assert(r.valid, 'All-in raise valid');
+  assert(r.action.type === 'all-in', 'Type is all-in');
+  assert(r.action.chipsDelta === 120, `Delta is 120 (got ${r.action.chipsDelta})`);
+  assert(street.allInUUIDs.has('b'), 'b is all-in');
+}
+
+console.log('19. All-in player skipped in next actions');
+{
+  const p = [
+    { uuid: 'a', chipStack: 100 },
+    { uuid: 'b', chipStack: 100 },
+    { uuid: 'c', chipStack: 500 },
+  ];
+  const street = new Street('flop', [], p, 0, new Set(['a'])); // a is already all-in
+  assert(street.needsToAct.size === 2, 'Only b and c need to act');
+  assert(!street.needsToAct.has('a'), 'a does not need to act');
+
+  street.processAction('b', { type: 'check' });
+  street.processAction('c', { type: 'check' });
+  assert(street.isComplete(), 'Complete without a acting');
+}
+
+console.log('20. All-in blind');
+{
+  const p = [
+    { uuid: 'a', chipStack: 5 }, // less than blind
+    { uuid: 'b', chipStack: 1000 },
+  ];
+  const street = new Street('preflop', [], p, 0);
+  const r = street.processAction('a', { type: 'blind', amount: 10 });
+  assert(r.valid, 'Blind with insufficient chips valid');
+  assert(r.action.type === 'all-in', 'Type is all-in');
+  assert(r.action.chipsDelta === 5, `Delta is 5 (got ${r.action.chipsDelta})`);
+  assert(street.allInUUIDs.has('a'), 'a is all-in');
+  assert(!street.needsToAct.has('a'), 'a removed from needsToAct');
 }
 
 console.log(`\n=== Results: ${passed} passed, ${failed} failed ===`);

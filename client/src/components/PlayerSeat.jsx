@@ -20,7 +20,7 @@ function CardBack({ delay = 0 }) {
   return <div className="card card--back" style={{ animationDelay: `${delay}ms` }} />;
 }
 
-export default function PlayerSeat({ player, isCurrentPlayer, isDealer, isSB, isBB, isCurrentTurn, betAmount }) {
+export default function PlayerSeat({ player, isCurrentPlayer, isDealer, isSB, isBB, isCurrentTurn, betAmount, timerPct }) {
   const cls = [
     'seat',
     isCurrentTurn && 'seat--turn',
@@ -30,9 +30,15 @@ export default function PlayerSeat({ player, isCurrentPlayer, isDealer, isSB, is
   ].filter(Boolean).join(' ');
 
   const showCards = player.status !== 'folded' && player.status !== 'sitting-out';
+  const timerSec = timerPct != null ? Math.ceil(timerPct / 5) : null; // rough seconds
 
   return (
     <div className={cls}>
+      {timerPct != null && (
+        <div className={`seat-timer ${timerPct < 25 ? 'seat-timer--low' : ''}`}>
+          {timerSec}
+        </div>
+      )}
       <div className="seat-badges">
         {isDealer && <span className="badge badge--d">D</span>}
         {isSB && <span className="badge badge--sb">SB</span>}

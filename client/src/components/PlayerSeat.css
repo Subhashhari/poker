@@ -161,3 +161,29 @@
 .seat-tag--fold { background: var(--text-2); }
 .seat-tag--dc   { background: var(--red); }
 .seat-tag--out  { background: var(--amber); color: #111; }
+
+/* Timer countdown */
+.seat-timer {
+  position: absolute;
+  top: -10px;
+  left: -6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--bg-2);
+  border: 2px solid var(--gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--gold);
+  z-index: 5;
+  animation: popIn 200ms var(--ease);
+}
+
+.seat-timer--low {
+  border-color: var(--red);
+  color: var(--red);
+}

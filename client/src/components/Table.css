@@ -64,3 +64,47 @@
   transform: translate(-50%, -50%);
   z-index: 20;
 }
+
+/* ─── Side Pots ─── */
+.side-pots {
+  display: flex;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.side-pot {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-1);
+  padding: 1px 6px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 99px;
+}
+
+/* ─── Timer Bar ─── */
+.timer-bar {
+  position: fixed;
+  bottom: 78px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 260px;
+  height: 4px;
+  background: var(--bg-3);
+  border-radius: 2px;
+  z-index: 110;
+  overflow: hidden;
+}
+
+.timer-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 100ms linear;
+  background: var(--gold);
+}
+
+.timer-fill[style*="width: 0%"],
+.timer-fill[style*="width: 1"],
+.timer-fill[style*="width: 2"] {
+  background: var(--red);
+}

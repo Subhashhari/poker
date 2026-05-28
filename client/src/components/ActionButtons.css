@@ -15,7 +15,7 @@
 .action-buttons {
   display: flex;
   gap: 10px;
-  align-items: center;
+  align-items: flex-end;
 }
 
 .action-btn {
@@ -31,6 +31,7 @@
   display: flex;
   align-items: center;
   gap: 5px;
+  white-space: nowrap;
 }
 
 .action-btn:active { transform: scale(0.96); }
@@ -58,16 +59,59 @@
   font-weight: 600;
 }
 
-/* Raise group */
+/* ─── Raise Group ─── */
 .raise-group {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   gap: 6px;
 }
 
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.raise-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: var(--bg-3);
+  border-radius: 2px;
+  outline: none;
+  min-width: 100px;
+}
+
+.raise-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--gold);
+  cursor: pointer;
+  border: 2px solid var(--bg-0);
+  box-shadow: 0 0 4px rgba(201,168,76,0.4);
+  transition: transform 100ms;
+}
+
+.raise-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.raise-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--gold);
+  cursor: pointer;
+  border: 2px solid var(--bg-0);
+}
+
 .raise-input {
-  width: 80px;
-  padding: 9px 10px;
+  width: 70px;
+  padding: 7px 8px;
   background: var(--bg-2);
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
@@ -84,8 +128,27 @@
   border-color: var(--text-2);
 }
 
-.raise-input::-webkit-inner-spin-button,
-.raise-input::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
+/* ─── Presets ─── */
+.preset-row {
+  display: flex;
+  gap: 4px;
+}
+
+.preset-btn {
+  flex: 1;
+  padding: 4px 8px;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text-1);
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 100ms;
+}
+
+.preset-btn:hover {
+  background: var(--bg-4);
+  color: var(--text-0);
 }
