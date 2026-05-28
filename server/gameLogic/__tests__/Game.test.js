@@ -89,6 +89,9 @@ console.log('\n5. Play a round — fold to winner, then auto-starts next round')
   const r = game.processAction(third, { type: 'fold' });
 
   assert(r.roundComplete, 'Round completed');
+  assert(r.needsNextRound, 'Round complete requires next round to start');
+
+  game.startNextRound(); // <--- manually trigger it since it no longer auto-starts
 
   // Next round should have started automatically
   assert(game.currentRoundIndex === 1, 'Next round started (index 1)');
@@ -197,7 +200,11 @@ console.log('\n10. Multi-round — dealer rotates');
   const second = round.getCurrentStreet().getCurrentPlayerUUID();
   game.processAction(second, { type: 'fold' });
   const third = round.getCurrentStreet().getCurrentPlayerUUID();
-  game.processAction(third, { type: 'fold' });
+  const r = game.processAction(third, { type: 'fold' });
+  
+  if (r.needsNextRound) {
+    game.startNextRound();
+  }
 
   // Dealer should have rotated
   assert(game.dealerIndex !== firstDealer || game.players.length === 1, 'Dealer rotated (or only 1 player)');

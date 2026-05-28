@@ -24,7 +24,12 @@ export default function Room({ roomId, playerUUID, gameState, roomData, onLeave 
   useEffect(() => {
     const handleRoundOver = ({ result }) => {
       setRoundResult(result);
-      setTimeout(() => setRoundResult(null), 3500);
+      // Wait for host to start next round
+    };
+
+    const handleTurnTimer = () => {
+      // When a new turn starts, ensure the round over overlay is closed
+      setRoundResult(null);
     };
 
     const handleGameOver = ({ finalStandings }) => {
@@ -39,11 +44,13 @@ export default function Room({ roomId, playerUUID, gameState, roomData, onLeave 
     socket.on('round-over', handleRoundOver);
     socket.on('game-over', handleGameOver);
     socket.on('player-left', handlePlayerLeft);
+    socket.on('turn-timer', handleTurnTimer);
 
     return () => {
       socket.off('round-over', handleRoundOver);
       socket.off('game-over', handleGameOver);
       socket.off('player-left', handlePlayerLeft);
+      socket.off('turn-timer', handleTurnTimer);
     };
   }, []);
 
@@ -51,8 +58,15 @@ export default function Room({ roomId, playerUUID, gameState, roomData, onLeave 
     socket.emit('start-game', { roomId, uuid: playerUUID });
   };
 
+  const handleStartNextHand = () => {
+    socket.emit('start-next-round', { roomId, uuid: playerUUID });
+    setRoundResult(null);
+  };
+
   const getPlayerName = (uuid) =>
     gameState?.players?.find(p => p.uuid === uuid)?.name || 'Unknown';
+
+  const isHost = roomData?.hostUUID === playerUUID;
 
   // ─── Active game ───
   if (gameState && gameState.status === 'in-progress') {
@@ -63,14 +77,28 @@ export default function Room({ roomId, playerUUID, gameState, roomData, onLeave 
         <Table gameState={gameState} myUUID={playerUUID} roomId={roomId} />
 
         {roundResult && (
-          <div className="overlay" onClick={() => setRoundResult(null)}>
-            <div className="overlay-card" onClick={e => e.stopPropagation()}>
+          <div className="overlay">
+            <div className="overlay-card">
               <h2>Round Over</h2>
               <div className="detail">{getPlayerName(roundResult.winnerUUID)} wins</div>
               <div className="detail-sub">
                 {roundResult.handName ? roundResult.handName : 'Everyone folded'}
               </div>
               <div className="pot-val">{roundResult.pot}</div>
+              
+              {isHost ? (
+                <button 
+                  className="btn btn-gold" 
+                  style={{ marginTop: '24px', width: '100%' }}
+                  onClick={handleStartNextHand}
+                >
+                  Start Next Hand
+                </button>
+              ) : (
+                <div style={{ marginTop: '24px', opacity: 0.6, fontSize: '14px', textAlign: 'center' }}>
+                  Waiting for host...
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -99,7 +127,6 @@ export default function Room({ roomId, playerUUID, gameState, roomData, onLeave 
   }
 
   // ─── Waiting lobby ───
-  const isHost = roomData?.hostUUID === playerUUID;
   const players = roomData?.players || [];
 
   return (

@@ -158,11 +158,17 @@ class RoomManager {
   /**
    * Remove a player from their room. Cleans up empty rooms.
    */
-  removePlayer(socketId) {
-    const room = this.getRoomBySocketId(socketId);
+  removePlayer(socketId, uuid = null) {
+    let room;
+    if (socketId && socketId !== 'dummy') {
+      room = this.getRoomBySocketId(socketId);
+    }
+    if (!room && uuid) {
+      room = this.getRoomByPlayerUUID(uuid);
+    }
     if (!room) return null;
 
-    const player = room.players.find(p => p.socketId === socketId);
+    const player = room.players.find(p => p.socketId === socketId || p.uuid === uuid);
     if (!player) return null;
 
     // If game is in progress, handle as disconnect (don't remove from players array)
@@ -171,7 +177,7 @@ class RoomManager {
     }
 
     // In waiting state, remove the player
-    room.players = room.players.filter(p => p.socketId !== socketId);
+    room.players = room.players.filter(p => p.uuid !== player.uuid);
 
     // If room is empty, delete it
     if (room.players.length === 0) {

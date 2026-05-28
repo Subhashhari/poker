@@ -78,9 +78,9 @@ class Game {
 
     this.currentRoundIndex++;
 
-    // Map dealerIndex from all-players space to eligible-players space
-    // and then create the round with eligible players only
-    const dealerInEligible = this.dealerIndex % eligible.length;
+    const dealerPlayer = this.players[this.dealerIndex];
+    let dealerInEligible = eligible.findIndex(p => p.uuid === dealerPlayer?.uuid);
+    if (dealerInEligible === -1) dealerInEligible = 0; // fallback if dealer dropped
 
     const round = new Round(
       this.currentRoundIndex + 1,
@@ -111,9 +111,11 @@ class Game {
     if (result.valid && result.roundComplete) {
       // Round is over — check for game over or start next round
       if (this._checkGameOver()) {
-        this._endGame();
+        const gameOverResult = this._endGame();
+        result.gameOver = true;
+        result.finalStandings = gameOverResult.finalStandings;
       } else {
-        this._rotateDealerAndStartNextRound();
+        result.needsNextRound = true;
       }
     }
 
@@ -140,7 +142,7 @@ class Game {
   /**
    * Rotate dealer to the next eligible player and start a new round.
    */
-  _rotateDealerAndStartNextRound() {
+  startNextRound() {
     const eligible = this.getEligiblePlayers();
     if (eligible.length < 2) {
       return this._endGame();
@@ -199,9 +201,11 @@ class Game {
       const result = round.autoFold(playerUUID);
       if (result.valid && result.roundComplete) {
         if (this._checkGameOver()) {
-          this._endGame();
+          const gameOverResult = this._endGame();
+          result.gameOver = true;
+          result.finalStandings = gameOverResult.finalStandings;
         } else {
-          this._rotateDealerAndStartNextRound();
+          result.needsNextRound = true;
         }
       }
       return result;

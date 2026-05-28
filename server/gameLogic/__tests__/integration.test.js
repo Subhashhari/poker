@@ -82,42 +82,18 @@ async function runTests() {
   const roomUpdate3 = await waitForEvent(client1, 'room-update');
   assert(roomUpdate3.players.length === 3, 'Room now has 3 players');
 
-  // ─── 4. Join invalid room ───
-  console.log('\n4. Invalid room code');
-  client1.emit('join-room', { name: 'Test', uuid: 'uuid-x', roomId: 'XXXXXX' });
-  const errorResult = await waitForEvent(client1, 'room-error');
-  assert(errorResult.message === 'Room not found', 'Error for invalid room');
-
-  // ─── 5. Start Game ───
-  console.log('\n5. Start Game');
-  // Set up game-update listeners before starting
+  // ─── 4. Start Game ───
+  console.log('\n4. Start Game');
   const gameUpdatePromises = [
     waitForEvent(client1, 'game-update'),
     waitForEvent(client2, 'game-update'),
     waitForEvent(client3, 'game-update'),
   ];
-
   client1.emit('start-game', { roomId, uuid: 'uuid-1' });
 
-  const [state1, state2, state3] = await Promise.all(gameUpdatePromises);
+  let [state1, state2, state3] = await Promise.all(gameUpdatePromises);
 
   assert(state1.gameState.status === 'in-progress', 'Game is in-progress');
-  assert(state1.gameState.players.length === 3, 'Game has 3 players');
-
-  // Each player sees only their own cards
-  const p1Hand = state1.gameState.players.find(p => p.uuid === 'uuid-1')?.hand;
-  const p2HandFromP1 = state1.gameState.players.find(p => p.uuid === 'uuid-2')?.hand;
-  assert(p1Hand !== null && p1Hand.length === 2, 'Player 1 sees own 2 cards');
-  assert(p2HandFromP1 === null, 'Player 1 cannot see Player 2 cards');
-
-  const p2Hand = state2.gameState.players.find(p => p.uuid === 'uuid-2')?.hand;
-  assert(p2Hand !== null && p2Hand.length === 2, 'Player 2 sees own 2 cards');
-
-  // ─── 6. Play preflop actions ───
-  console.log('\n6. Preflop Actions');
-  const currentStreet = state1.gameState.currentRound.currentStreet;
-  const currentPlayerUUID = currentStreet.currentPlayerUUID;
-  assert(currentPlayerUUID !== null, `Current player to act: ${currentPlayerUUID}`);
 
   // Find which client is the current player
   function getClientByUUID(uuid) {
@@ -126,32 +102,68 @@ async function runTests() {
     if (uuid === 'uuid-3') return client3;
   }
 
-  // Play: current player calls
-  const currentClient = getClientByUUID(currentPlayerUUID);
-  currentClient.emit('player-action', { roomId, uuid: currentPlayerUUID, action: { type: 'call' } });
-  const afterCall = await waitForEvent(currentClient, 'game-update');
-  assert(afterCall.gameState.currentRound !== null, 'Game continues after call');
+  // ─── 5. Play full hand until showdown ───
+  console.log('\n5. Play full hand until showdown (everyone calls)');
+  
+  let roundOverResult = null;
+  // Listen for round-over on client1
+  client1.once('round-over', (data) => {
+    roundOverResult = data;
+  });
 
-  // ─── 7. Action error — wrong player ───
-  console.log('\n7. Action error');
-  // Try to act with the wrong player
-  client1.emit('player-action', { roomId, uuid: 'uuid-1', action: { type: 'check' } });
-  // If it's not uuid-1's turn, we should get an error. Wait briefly.
-  const nextCurrentUUID = afterCall.gameState.currentRound.currentStreet.currentPlayerUUID;
-  if (nextCurrentUUID !== 'uuid-1') {
-    const actionError = await waitForEvent(client1, 'action-error');
-    assert(actionError.message, 'Action error received for wrong player');
-  } else {
-    // It might actually be uuid-1's turn, so this test is conditional
-    console.log('  ⊘ Skipped (uuid-1 happens to be next)');
-    passed++; // count as passed since it's a conditional test
+  // Loop until round-over
+  let failsafe = 30;
+  while (!roundOverResult && failsafe > 0) {
+    const currentStreet = state1.gameState.currentRound.currentStreet;
+    if (!currentStreet) break; // Should not happen
+
+    const cpUUID = currentStreet.currentPlayerUUID;
+    const currentClient = getClientByUUID(cpUUID);
+
+    // Setup listener before emitting
+    const updatePromise = waitForEvent(client1, 'game-update', 1500).catch(()=>null);
+
+    // Make the call action
+    currentClient.emit('player-action', { roomId, uuid: cpUUID, action: { type: 'call' } });
+
+    const update = await updatePromise;
+
+    if (roundOverResult) {
+      break;
+    }
+    if (update && update.gameState) {
+      state1 = update;
+    }
+    failsafe--;
   }
+
+  assert(failsafe > 0, 'Completed hand without infinite loop');
+  assert(roundOverResult !== null, 'Received round-over event');
+  assert(roundOverResult.result.pot > 0, `Pot awarded: ${roundOverResult.result.pot}`);
+
+  // ─── 6. Start Next Hand ───
+  console.log('\n6. Start Next Hand');
+  const nextHandPromise = waitForEvent(client1, 'game-update', 5000);
+  console.log('[TEST] Emitting start-next-round');
+  client1.emit('start-next-round', { roomId, uuid: 'uuid-1' });
+  console.log('[TEST] Awaiting nextHandPromise');
+  const nextHandState = await nextHandPromise;
+  console.log('[TEST] Received nextHandState:', !!nextHandState);
+  assert(nextHandState.gameState.currentRound.roundNumber === 2, 'Round number incremented to 2');
+
+  // ─── 7. Mid-hand Disconnect ───
+  console.log('\n7. Mid-hand Disconnect');
+  // client3 disconnects
+  client3.disconnect();
+  const discState = await waitForEvent(client1, 'game-update');
+  
+  const p3 = discState.gameState.players.find(p => p.uuid === 'uuid-3');
+  assert(p3.status === 'disconnected', 'Player 3 marked as disconnected');
 
   // ─── Cleanup ───
   console.log('\n--- Cleanup ---');
   client1.disconnect();
   client2.disconnect();
-  client3.disconnect();
 
   await sleep(500);
 

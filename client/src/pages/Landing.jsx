@@ -20,6 +20,11 @@ export default function Landing({ playerUUID }) {
     if (roomCode.trim().length !== 6) return setError('Enter a 6-character room code');
     setError('');
     setLoading(true);
+    let uuid = sessionStorage.getItem('poker_uuid');
+    if (!uuid) {
+      uuid = crypto.randomUUID();
+      sessionStorage.setItem('poker_uuid', uuid);
+    }
     socket.emit('join-room', {
       name: name.trim(),
       uuid: playerUUID,

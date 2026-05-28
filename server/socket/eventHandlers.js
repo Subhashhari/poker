@@ -93,6 +93,11 @@ function handlePostAction(io, room, result, roomManager) {
       room.game = null;
       return;
     }
+    
+    // Broadcast showdown state, but DO NOT start the turn timer.
+    // Waiting for host to send 'start-next-round'.
+    broadcastGameUpdate(io, room);
+    return;
   }
 
   broadcastGameUpdate(io, room);
@@ -129,6 +134,40 @@ function broadcastRoomUpdate(io, room) {
   }
 }
 
+function handlePlayerExit(io, room, player, action, roomManager) {
+  const playerName = player.name;
+  
+  if (room.game && room.game.status === 'in-progress') {
+    const foldResult = room.game.handleDisconnect(player.uuid);
+    
+    // Broadcast player-left (for leave-room) or just let game update handle disconnected status
+    if (action === 'leave') {
+      for (const p of room.players) {
+        if (!p.socketId || p.uuid === player.uuid) continue;
+        io.to(p.socketId).emit('player-left', { name: playerName });
+      }
+    }
+
+    if (foldResult && foldResult.roundComplete) {
+      handlePostAction(io, room, foldResult, roomManager);
+    } else {
+      broadcastGameUpdate(io, room);
+      startTurnTimer(io, room, roomManager);
+    }
+  } else {
+    // Not in progress - handled by RoomManager (players array updated)
+    if (action === 'leave' || action === 'removed') {
+      for (const p of room.players) {
+        if (!p.socketId) continue;
+        io.to(p.socketId).emit('player-left', { name: playerName });
+      }
+      broadcastRoomUpdate(io, room);
+    } else if (action === 'deleted') {
+      clearTurnTimer(room.id);
+    }
+  }
+}
+
 export function registerHandlers(io, roomManager) {
   io.on('connection', (socket) => {
     console.log(`Client connected: ${socket.id}`);
@@ -136,73 +175,67 @@ export function registerHandlers(io, roomManager) {
     // ─── Create Room ───
     socket.on('create-room', ({ name, uuid }) => {
       const result = roomManager.createRoom(uuid, name, socket.id);
-
-      if (result.error) {
-        socket.emit('room-error', { message: result.error });
-        return;
-      }
+      if (result.error) return socket.emit('room-error', { message: result.error });
 
       const room = result.room;
       socket.join(room.id);
       socket.emit('room-created', { roomId: room.id });
       broadcastRoomUpdate(io, room);
-
       console.log(`Room ${room.id} created by ${name} (${uuid})`);
     });
 
     // ─── Join Room ───
     socket.on('join-room', ({ name, uuid, roomId }) => {
       const result = roomManager.joinRoom(roomId, uuid, name, socket.id);
-
-      if (result.error) {
-        socket.emit('room-error', { message: result.error });
-        return;
-      }
+      if (result.error) return socket.emit('room-error', { message: result.error });
 
       const room = result.room;
       socket.join(room.id);
       socket.emit('room-joined', { roomId: room.id });
       broadcastRoomUpdate(io, room);
-
       console.log(`${name} (${uuid}) joined room ${roomId}`);
     });
 
     // ─── Start Game ───
     socket.on('start-game', ({ roomId, uuid }) => {
       const result = roomManager.startGame(roomId, uuid);
-
-      if (result.error) {
-        socket.emit('room-error', { message: result.error });
-        return;
-      }
+      if (result.error) return socket.emit('room-error', { message: result.error });
 
       const room = roomManager.getRoom(roomId);
       broadcastGameUpdate(io, room);
       startTurnTimer(io, room, roomManager);
-
       console.log(`Game started in room ${roomId}`);
+    });
+
+    // ─── Start Next Round ───
+    socket.on('start-next-round', ({ roomId, uuid }) => {
+      console.log(`[TEST] start-next-round received for ${roomId} by ${uuid}`);
+      const room = roomManager.getRoom(roomId);
+      if (!room || !room.game || room.game.status !== 'in-progress') {
+        console.log(`[TEST] Failed: Room state invalid`, room?.game?.status);
+        return;
+      }
+      if (room.hostUUID !== uuid) {
+        console.log(`[TEST] Failed: Not host. Host is ${room.hostUUID}, received ${uuid}`);
+        return;
+      }
+
+      const result = room.game.startNextRound();
+      console.log(`[TEST] startNextRound result:`, result);
+      if (result.success) {
+        broadcastGameUpdate(io, room);
+        startTurnTimer(io, room, roomManager);
+      }
     });
 
     // ─── Player Action ───
     socket.on('player-action', ({ roomId, uuid, action }) => {
       const room = roomManager.getRoom(roomId);
-
-      if (!room) {
-        socket.emit('action-error', { message: 'Room not found' });
-        return;
-      }
-
-      if (!room.game || room.game.status !== 'in-progress') {
-        socket.emit('action-error', { message: 'No active game' });
-        return;
-      }
+      if (!room) return socket.emit('action-error', { message: 'Room not found' });
+      if (!room.game || room.game.status !== 'in-progress') return socket.emit('action-error', { message: 'No active game' });
 
       const result = room.game.processAction(uuid, action);
-
-      if (!result.valid) {
-        socket.emit('action-error', { message: result.error });
-        return;
-      }
+      if (!result.valid) return socket.emit('action-error', { message: result.error });
 
       handlePostAction(io, room, result, roomManager);
     });
@@ -210,17 +243,10 @@ export function registerHandlers(io, roomManager) {
     // ─── Reconnect ───
     socket.on('reconnect-attempt', ({ roomId, uuid }) => {
       const room = roomManager.getRoom(roomId);
-
-      if (!room) {
-        socket.emit('room-error', { message: 'Room not found' });
-        return;
-      }
+      if (!room) return socket.emit('room-error', { message: 'Room not found' });
 
       const player = room.players.find(p => p.uuid === uuid);
-      if (!player) {
-        socket.emit('room-error', { message: 'Player not found in room' });
-        return;
-      }
+      if (!player) return socket.emit('room-error', { message: 'Player not found in room' });
 
       player.socketId = socket.id;
       socket.join(roomId);
@@ -232,7 +258,6 @@ export function registerHandlers(io, roomManager) {
       } else {
         broadcastRoomUpdate(io, room);
       }
-
       console.log(`${player.name} (${uuid}) reconnected to room ${roomId}`);
     });
 
@@ -243,112 +268,24 @@ export function registerHandlers(io, roomManager) {
 
       const player = room.players.find(p => p.uuid === uuid);
       if (!player) return;
+      
+      const socketId = player.socketId;
 
-      const playerName = player.name;
-
-      if (room.game && room.game.status === 'in-progress') {
-        const foldResult = room.game.handleDisconnect(uuid);
-        player.status = 'disconnected';
-        player.socketId = null;
-
-        for (const p of room.players) {
-          if (!p.socketId || p.uuid === uuid) continue;
-          io.to(p.socketId).emit('player-left', { name: playerName });
-        }
-
-        if (foldResult && foldResult.roundComplete) {
-          clearTurnTimer(room.id);
-
-          for (const p of room.game.players) {
-            if (!p.socketId || p.status === 'disconnected') continue;
-            io.to(p.socketId).emit('round-over', { result: foldResult.result });
-          }
-
-          if (room.game.status === 'finished') {
-            const finalStandings = room.game.players
-              .map(p => ({ uuid: p.uuid, name: p.name, chipStack: p.chipStack }))
-              .sort((a, b) => b.chipStack - a.chipStack);
-            for (const p of room.game.players) {
-              if (!p.socketId) continue;
-              io.to(p.socketId).emit('game-over', { finalStandings });
-            }
-            room.status = 'waiting';
-            room.game = null;
-          } else {
-            broadcastGameUpdate(io, room);
-            startTurnTimer(io, room, roomManager);
-          }
-        } else {
-          broadcastGameUpdate(io, room);
-          startTurnTimer(io, room, roomManager);
-        }
-      } else {
-        room.players = room.players.filter(p => p.uuid !== uuid);
-
-        for (const p of room.players) {
-          if (!p.socketId) continue;
-          io.to(p.socketId).emit('player-left', { name: playerName });
-        }
-
-        if (room.players.length === 0) {
-          clearTurnTimer(room.id);
-          roomManager.rooms.delete(room.id);
-        } else {
-          if (uuid === room.hostUUID) {
-            room.hostUUID = room.players[0].uuid;
-          }
-          broadcastRoomUpdate(io, room);
-        }
-      }
-
+      const result = roomManager.removePlayer(socketId || 'dummy', uuid);
+      if (!result) return;
+      
       socket.leave(roomId);
-      console.log(`${playerName} left room ${roomId}`);
+      handlePlayerExit(io, result.room, result.player, result.action === 'disconnect' ? 'leave' : result.action, roomManager);
+      console.log(`${result.player.name} left room ${roomId}`);
     });
 
     // ─── Disconnect ───
     socket.on('disconnect', () => {
       const result = roomManager.removePlayer(socket.id);
       if (!result) return;
-
-      const { room, player, action } = result;
-
-      if (action === 'disconnect' && room.game) {
-        const foldResult = room.game.handleDisconnect(player.uuid);
-
-        if (foldResult && foldResult.roundComplete) {
-          clearTurnTimer(room.id);
-
-          for (const p of room.game.players) {
-            if (!p.socketId || p.status === 'disconnected') continue;
-            io.to(p.socketId).emit('round-over', { result: foldResult.result });
-          }
-
-          if (room.game.status === 'finished') {
-            const finalStandings = room.game.players
-              .map(p => ({ uuid: p.uuid, name: p.name, chipStack: p.chipStack }))
-              .sort((a, b) => b.chipStack - a.chipStack);
-
-            for (const p of room.game.players) {
-              if (!p.socketId) continue;
-              io.to(p.socketId).emit('game-over', { finalStandings });
-            }
-
-            room.status = 'waiting';
-            room.game = null;
-            return;
-          }
-        }
-
-        broadcastGameUpdate(io, room);
-        startTurnTimer(io, room, roomManager);
-        console.log(`${player.name} disconnected from active game in room ${room.id} — auto-folded`);
-      } else if (action === 'removed') {
-        broadcastRoomUpdate(io, room);
-        console.log(`${player.name} left room ${room.id} (lobby)`);
-      } else if (action === 'deleted') {
-        clearTurnTimer(room.id);
-        console.log(`Room ${room.id} deleted (empty)`);
-      }
+      
+      handlePlayerExit(io, result.room, result.player, result.action, roomManager);
+      console.log(`${result.player.name} disconnected (action: ${result.action})`);
     });
   });
 }
