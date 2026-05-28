@@ -17,7 +17,9 @@ function CardFace({ card, delay = 0 }) {
 }
 
 function CardBack({ delay = 0 }) {
-  return <div className="card card--back" style={{ animationDelay: `${delay}ms` }} />;
+  return <div className="card card--back" style={{ animationDelay: `${delay}ms` }}>
+    <div className="card-pattern"></div>
+  </div>;
 }
 
 export default function PlayerSeat({ player, isCurrentPlayer, isDealer, isSB, isBB, isCurrentTurn, betAmount, timerPct }) {
@@ -27,40 +29,50 @@ export default function PlayerSeat({ player, isCurrentPlayer, isDealer, isSB, is
     player.status === 'folded' && 'seat--folded',
     player.status === 'disconnected' && 'seat--disconnected',
     player.status === 'sitting-out' && 'seat--sitting-out',
+    isCurrentPlayer ? 'seat--local' : 'seat--remote'
   ].filter(Boolean).join(' ');
 
   const showCards = player.status !== 'folded' && player.status !== 'sitting-out';
-  const timerSec = timerPct != null ? Math.ceil(timerPct / 5) : null; // rough seconds
+
+  // Extract a 1-2 character avatar from the name
+  const avatarText = player.name ? player.name.substring(0, 2).toUpperCase() : '?';
 
   return (
-    <div className={cls}>
-      {timerPct != null && (
-        <div className={`seat-timer ${timerPct < 25 ? 'seat-timer--low' : ''}`}>
-          {timerSec}
+    <div className="seat-container">
+      {/* Floating bet tag */}
+      {betAmount > 0 && <div className="seat-action-tag">Bet ${betAmount}</div>}
+
+      <div className={cls}>
+        <div className="seat-badges">
+          {isDealer && <span className="badge badge--d">D</span>}
+          {isSB && <span className="badge badge--sb">SB</span>}
+          {isBB && <span className="badge badge--bb">BB</span>}
         </div>
-      )}
-      <div className="seat-badges">
-        {isDealer && <span className="badge badge--d">D</span>}
-        {isSB && <span className="badge badge--sb">SB</span>}
-        {isBB && <span className="badge badge--bb">BB</span>}
+
+        {showCards && (
+          <div className="seat-cards">
+            {isCurrentPlayer && player.hand ? (
+              player.hand.map((c, i) => <CardFace key={i} card={c} delay={i * 80} />)
+            ) : (
+              <><CardBack /><CardBack delay={60} /></>
+            )}
+          </div>
+        )}
+
+        <div className="seat-inner">
+          <div className="seat-avatar">
+            {avatarText}
+          </div>
+          <div className="seat-info">
+            <span className="seat-name">{player.name}</span>
+            <span className="seat-stack">${player.chipStack}</span>
+          </div>
+        </div>
       </div>
 
-      <div className="seat-cards">
-        {isCurrentPlayer && player.hand ? (
-          player.hand.map((c, i) => <CardFace key={i} card={c} delay={i * 80} />)
-        ) : showCards ? (
-          <><CardBack /><CardBack delay={60} /></>
-        ) : null}
-      </div>
-
-      <span className="seat-name">{player.name}</span>
-      <span className="seat-stack">{player.chipStack}</span>
-
-      {betAmount > 0 && <div className="seat-bet">{betAmount}</div>}
-
-      {player.status === 'folded' && <span className="seat-tag seat-tag--fold">Fold</span>}
-      {player.status === 'disconnected' && <span className="seat-tag seat-tag--dc">Offline</span>}
-      {player.status === 'sitting-out' && <span className="seat-tag seat-tag--out">Out</span>}
+      {player.status === 'folded' && <span className="seat-status-tag">Folded</span>}
+      {player.status === 'disconnected' && <span className="seat-status-tag seat-status-tag--red">Offline</span>}
+      {player.status === 'sitting-out' && <span className="seat-status-tag seat-status-tag--amber">Sitting Out</span>}
     </div>
   );
 }

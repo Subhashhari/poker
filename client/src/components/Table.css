@@ -21,7 +21,38 @@
   left: 50%;
   transform: translate(-50%, -55%);
   background: radial-gradient(ellipse, rgba(27,94,59,0.18) 0%, transparent 70%);
+}
+
+.table-top-info {
+  position: absolute;
+  top: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  z-index: 5;
+}
+
+.table-logo {
+  font-family: var(--font);
+  font-size: 24px;
+  font-weight: 800;
+  color: rgba(255,255,255,0.15);
+  letter-spacing: 12px;
+  text-transform: uppercase;
   pointer-events: none;
+}
+
+.table-room-code {
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 2px;
+  user-select: all;
+  cursor: text;
 }
 
 /* ─── Table Felt ─── */
@@ -29,20 +60,15 @@
   position: relative;
   width: 100%;
   max-width: 900px;
-  height: 500px;
-  border-radius: 240px / 220px;
-  background:
-    radial-gradient(ellipse at 50% 40%, #29834f 0%, #1e6b3e 30%, #155530 60%, #0f3f24 100%);
-  border: 6px solid #1a3726;
+  height: 480px;
+  border-radius: 240px; /* pill shape */
+  background: #117838; /* flatter, distinct green */
+  background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0.1) 100%);
+  border: 18px solid #2b2e33; /* thick grey rail */
   box-shadow:
-    /* outer wood-like rail */
-    0 0 0 10px #1a2a20,
-    0 0 0 14px #0c1a12,
-    /* depth / ambient */
-    inset 0 0 80px rgba(0,0,0,0.25),
-    inset 0 2px 20px rgba(255,255,255,0.04),
-    0 20px 60px rgba(0,0,0,0.5),
-    0 0 120px rgba(27,94,59,0.08);
+    inset 0 10px 20px rgba(0,0,0,0.4), /* shadow from rail onto felt */
+    0 12px 30px rgba(0,0,0,0.8), /* shadow of the table onto bg */
+    0 0 0 4px #1c1d21; /* thin outer rim */
 }
 
 /* Subtle texture overlay */
@@ -58,13 +84,13 @@
 /* ─── Center content ─── */
 .table-center {
   position: absolute;
-  top: 48%;
+  top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   z-index: 10;
 }
 
@@ -75,43 +101,35 @@
   align-items: center;
   gap: 2px;
   animation: popIn 300ms var(--ease);
-  padding: 6px 18px;
-  background: rgba(0,0,0,0.25);
-  border-radius: 20px;
-  backdrop-filter: blur(4px);
-}
-
-.pot-label {
-  font-size: 9px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  color: rgba(255,255,255,0.35);
 }
 
 .pot-val {
-  font-family: var(--mono);
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--gold);
-  text-shadow: 0 0 12px rgba(201,168,76,0.2);
+  font-family: var(--font);
+  font-size: 28px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.4);
+}
+
+.pot-val::before {
+  content: '$';
 }
 
 /* ─── Side Pots ─── */
 .side-pots {
   display: flex;
   gap: 5px;
-  margin-top: 2px;
+  margin-top: -4px;
 }
 
 .side-pot {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
-  color: var(--text-2);
+  color: #aae0bb;
   padding: 1px 8px;
-  background: rgba(255,255,255,0.06);
   border-radius: 99px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
 }
 
 /* ─── Seat positioning ─── */

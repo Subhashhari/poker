@@ -1,207 +1,226 @@
-/* ─── Player Seat ─── */
+/* ─── Player Seat Container ─── */
+.seat-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Floating Action Tag (e.g. "Check", "Bet $40") */
+.seat-action-tag {
+  position: absolute;
+  left: -80px; /* Default offset, adjusts based on seat pos */
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  animation: popIn 250ms var(--ease);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+}
+
+/* ─── Player Seat Main Body ─── */
 .seat {
+  position: relative;
   display: flex;
   flex-direction: column;
+  width: 140px;
+  border-radius: 12px;
+  background: linear-gradient(to bottom, #000000 0%, #111111 100%);
+  border: 1px solid rgba(255,255,255,0.15);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.6);
+  transition: opacity 300ms, transform 300ms;
+  z-index: 10;
+}
+
+.seat-inner {
+  display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 8px 12px 10px;
-  border-radius: 14px;
-  background: rgba(16,17,20,0.82);
-  backdrop-filter: blur(10px);
-  border: 1.5px solid rgba(255,255,255,0.06);
-  min-width: 96px;
-  position: relative;
-  transition: opacity 300ms, border-color 300ms, box-shadow 300ms;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  padding: 6px 8px;
+  gap: 10px;
+  z-index: 2; /* keep above timer track */
 }
 
 .seat--turn {
-  border-color: rgba(201,168,76,0.5);
   box-shadow:
-    0 0 0 1px rgba(201,168,76,0.2),
-    0 0 20px rgba(201,168,76,0.1),
-    0 4px 16px rgba(0,0,0,0.3);
-  animation: turnPulse 2.5s ease-in-out infinite;
+    0 0 0 1px rgba(255,255,255,0.4),
+    0 8px 24px rgba(0,0,0,0.8);
+  transform: translateY(-2px);
 }
 
-.seat--folded {
-  opacity: 0.3;
-}
-
-.seat--disconnected {
-  opacity: 0.25;
-  border-color: rgba(217,79,79,0.4);
+.seat--folded, .seat--disconnected {
+  opacity: 0.4;
+  filter: grayscale(1);
 }
 
 .seat--sitting-out {
-  opacity: 0.35;
-  border-color: rgba(212,148,58,0.4);
+  opacity: 0.5;
 }
 
-/* ─── Badges ─── */
+/* ─── Avatar ─── */
+.seat-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2a2d35 0%, #16181d 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font);
+  font-weight: 700;
+  font-size: 13px;
+  color: #ccc;
+  flex-shrink: 0;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.4), 0 1px 3px rgba(0,0,0,0.5);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+/* ─── Info (Name/Stack) ─── */
+.seat-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.seat-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.seat-stack {
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 700;
+  color: #e0e0e0;
+  line-height: 1.2;
+}
+
+
+
+/* ─── Badges (D/SB/BB) ─── */
 .seat-badges {
   position: absolute;
-  top: -8px;
-  right: -5px;
+  bottom: -6px;
+  left: -6px;
   display: flex;
   gap: 3px;
+  z-index: 20;
 }
 
 .badge {
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 700;
-  padding: 2px 5px;
-  border-radius: 6px;
+  padding: 3px 6px;
+  border-radius: 50%;
   line-height: 1;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  background: #333;
+  color: #aaa;
+  border: 1px solid #111;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.5);
 }
 
 .badge--d {
-  background: var(--gold);
+  background: #e0e0e0;
   color: #111;
-  box-shadow: 0 1px 4px rgba(201,168,76,0.3);
-}
-
-.badge--sb, .badge--bb {
-  background: rgba(255,255,255,0.08);
-  color: var(--text-2);
 }
 
 /* ─── Cards ─── */
 .seat-cards {
+  position: absolute;
   display: flex;
-  gap: 4px;
-  margin-bottom: 3px;
+  gap: 2px;
+  z-index: 1;
+}
+
+/* Opponents: Cards peek from top/behind */
+.seat--remote .seat-cards {
+  top: -24px;
+  right: 12px;
+}
+
+/* Local player: Cards sit larger above the seat */
+.seat--local .seat-cards {
+  top: -50px;
+  left: 12px;
+  z-index: 20; /* Pop over everything */
 }
 
 .card {
-  width: 34px;
-  height: 48px;
-  border-radius: 5px;
+  border-radius: 4px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-weight: 600;
+  font-weight: 700;
   animation: cardReveal 350ms var(--ease) backwards;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+}
+
+/* Sizes vary based on local vs remote */
+.seat--remote .card {
+  width: 24px;
+  height: 34px;
+}
+.seat--local .card {
+  width: 40px;
+  height: 56px;
+  border-radius: 5px;
 }
 
 .card--face {
-  background: linear-gradient(145deg, #ffffff 0%, #f0f0f0 100%);
-  box-shadow:
-    0 2px 6px rgba(0,0,0,0.2),
-    inset 0 1px 0 rgba(255,255,255,0.9);
+  background: #fff;
+  border: 1px solid #ccc;
 }
 
 .card--red { color: #d33; }
 .card--blk { color: #1a1a2e; }
 
-.card-r {
-  font-size: 12px;
-  font-family: var(--mono);
-  font-weight: 700;
-  line-height: 1;
-}
+.seat--local .card-r { font-size: 16px; font-family: var(--mono); line-height: 1; margin-top: 2px; }
+.seat--local .card-s { font-size: 18px; line-height: 1; }
 
-.card-s {
-  font-size: 13px;
-  line-height: 1;
-}
+.seat--remote .card-r { font-size: 10px; font-family: var(--mono); line-height: 1; }
+.seat--remote .card-s { font-size: 10px; line-height: 1; }
 
+
+/* Classic red bicycle-style back pattern */
 .card--back {
-  background: linear-gradient(145deg, #1e3a52 0%, #152c42 100%);
-  border: 1px solid rgba(42,74,104,0.5);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  background: #d02020;
+  border: 2px solid #fff;
   overflow: hidden;
+  position: relative;
 }
 
-.card--back::after {
-  content: '';
-  display: block;
-  width: 100%;
-  height: 100%;
-  background:
-    repeating-linear-gradient(
-      135deg, transparent, transparent 2.5px,
-      rgba(255,255,255,0.03) 2.5px, rgba(255,255,255,0.03) 5px
-    );
-}
-
-/* ─── Info ─── */
-.seat-name {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-0);
-  max-width: 80px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.seat-stack {
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--gold);
-  opacity: 0.9;
-}
-
-/* ─── Bet chip ─── */
-.seat-bet {
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--gold);
-  padding: 2px 8px;
-  background: rgba(201,168,76,0.1);
-  border: 1px solid rgba(201,168,76,0.15);
-  border-radius: 99px;
+.card-pattern {
   position: absolute;
-  bottom: -16px;
-  animation: popIn 250ms var(--ease);
-  white-space: nowrap;
+  inset: 2px;
+  border: 1px solid rgba(255,255,255,0.4);
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 2px,
+    rgba(255,255,255,0.2) 2px,
+    rgba(255,255,255,0.2) 4px
+  );
 }
 
 /* ─── Status Tags ─── */
-.seat-tag {
+.seat-status-tag {
   position: absolute;
-  bottom: -16px;
-  font-size: 8px;
+  bottom: -20px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 2px 7px;
-  border-radius: 99px;
-  color: #fff;
+  color: #aaa;
+  text-shadow: 0 1px 2px #000;
 }
 
-.seat-tag--fold { background: rgba(109,113,122,0.6); }
-.seat-tag--dc   { background: rgba(217,79,79,0.7); }
-.seat-tag--out  { background: rgba(212,148,58,0.7); color: #111; }
-
-/* ─── Timer Badge ─── */
-.seat-timer {
-  position: absolute;
-  top: -9px;
-  left: -5px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--bg-1);
-  border: 1.5px solid rgba(201,168,76,0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--mono);
-  font-size: 8px;
-  font-weight: 700;
-  color: var(--gold);
-  z-index: 5;
-  animation: popIn 200ms var(--ease);
-}
-
-.seat-timer--low {
-  border-color: rgba(217,79,79,0.6);
-  color: var(--red);
-}
+.seat-status-tag--red { color: #ef4444; }
+.seat-status-tag--amber { color: #f59e0b; }

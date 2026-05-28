@@ -94,12 +94,15 @@ export default function Table({ gameState, myUUID, roomId }) {
 
   return (
     <div className="table-wrap">
+      <div className="table-top-info">
+        <div className="table-logo">TEXAS HOLD'EM</div>
+        <div className="table-room-code">Room: {roomId}</div>
+      </div>
       <div className="felt">
         <div className="table-center">
           <CommunityCards cards={communityCards} streetName={street?.name} />
           {potTotal > 0 && (
             <div className="pot-box">
-              <span className="pot-label">Pot</span>
               <span className="pot-val">{potTotal}</span>
               {pots.length > 1 && (
                 <div className="side-pots">
@@ -126,11 +129,12 @@ export default function Table({ gameState, myUUID, roomId }) {
                 isBB={p.uuid === bbUUID}
                 isCurrentTurn={isTurn}
                 betAmount={contribs[p.uuid] || 0}
-                timerPct={isTurn && timerForUUID === p.uuid ? timerPct : null}
+                timerPct={null} /* disable inline timer */
               />
             </div>
           );
         })}
+        
         {timerForUUID && timerPct != null && (
           <div className={`timer-vert ${timerPct < 25 ? 'timer-vert--low' : ''}`}>
             <span className="timer-vert-label">Timer</span>
