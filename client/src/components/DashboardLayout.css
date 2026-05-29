@@ -1,0 +1,255 @@
+/* ============================================
+   DashboardLayout — Kinetic Typography System
+   ============================================ */
+
+/* Layout Shell */
+.dashboard-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  background-color: var(--ed-bg);
+  color: var(--ed-fg);
+  font-family: var(--font-sans);
+  overflow: hidden;
+}
+
+/* ---- Top Bar ---- */
+.top-bar {
+  height: 80px;
+  min-height: 80px;
+  border-bottom: 2px solid var(--ed-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0;
+  background: var(--ed-bg);
+  position: relative;
+  z-index: 20;
+}
+
+.top-bar-left, .top-bar-right {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.top-bar-left {
+  width: 220px;
+  border-right: 2px solid var(--ed-border);
+  padding: 0 2rem;
+}
+
+.top-bar-right {
+  padding: 0 2rem;
+  gap: 2rem;
+}
+
+.top-bar-title {
+  font-family: var(--font-sans);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--ed-fg);
+  letter-spacing: -0.05em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.top-bar-player {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--ed-accent);
+  letter-spacing: 0.1em;
+  font-size: 1.25rem;
+}
+
+/* ---- Body ---- */
+.dashboard-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ---- Sidebar ---- */
+.dashboard-sidebar {
+  width: 220px;
+  min-width: 220px;
+  background: var(--ed-bg);
+  border-right: 2px solid var(--ed-border);
+  display: flex;
+  flex-direction: column;
+  padding: 2rem 0;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 10;
+}
+
+/* Navigation */
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.nav-btn {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-left: 4px solid transparent;
+  color: var(--ed-muted-fg);
+  font-family: var(--font-sans);
+  font-size: 2rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: -0.05em;
+  padding: 1.5rem 2rem;
+  cursor: pointer;
+  text-align: left;
+  border-radius: 0;
+  transition: all var(--duration-fast);
+}
+
+.nav-btn:hover {
+  color: var(--ed-fg);
+  background: var(--ed-muted-bg);
+}
+
+.nav-btn.active {
+  color: var(--ed-bg);
+  background: var(--ed-accent);
+  border-left: 4px solid var(--ed-fg);
+}
+
+/* Logout */
+.btn-logout {
+  background: transparent;
+  border: 2px solid var(--ed-border);
+  color: var(--ed-fg);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 0.75rem 1.5rem;
+  cursor: pointer;
+  transition: all var(--duration-fast);
+}
+
+.btn-logout:hover {
+  background: var(--ed-accent);
+  color: var(--ed-bg);
+  border-color: var(--ed-accent);
+}
+
+/* Vertical Decorative Text */
+.sidebar-footer {
+  padding: 2rem;
+  margin-top: auto;
+}
+
+.sidebar-vertical-text {
+  writing-mode: vertical-rl;
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--ed-muted-bg);
+}
+
+/* ---- Main Area ---- */
+.dashboard-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--ed-bg);
+  position: relative;
+  z-index: 1;
+}
+
+/* Content Area */
+.dashboard-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+/* Custom Scrollbar */
+.dashboard-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dashboard-content::-webkit-scrollbar-track {
+  background: var(--ed-bg);
+  border-left: 2px solid var(--ed-border);
+}
+
+.dashboard-content::-webkit-scrollbar-thumb {
+  background: var(--ed-border);
+  border-radius: 0;
+}
+
+.dashboard-content::-webkit-scrollbar-thumb:hover {
+  background: var(--ed-accent);
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 1024px) {
+  .dashboard-sidebar {
+    width: 240px;
+    min-width: 240px;
+  }
+  .top-bar-left {
+    width: 240px;
+  }
+  .nav-btn {
+    font-size: 1.5rem;
+    padding: 1rem 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-body {
+    flex-direction: column;
+  }
+  .dashboard-sidebar {
+    width: 100%;
+    min-width: 100%;
+    border-right: none;
+    border-bottom: 2px solid var(--ed-border);
+    padding: 0;
+    flex-direction: row;
+  }
+  .sidebar-nav {
+    flex-direction: row;
+    overflow-x: auto;
+  }
+  .nav-btn {
+    width: auto;
+    border-left: none;
+    border-bottom: 4px solid transparent;
+  }
+  .nav-btn.active {
+    border-left: none;
+    border-bottom: 4px solid var(--ed-fg);
+  }
+  .sidebar-footer {
+    display: none;
+  }
+  .top-bar-left {
+    width: auto;
+    border-right: none;
+  }
+  .top-bar-player {
+    display: none;
+  }
+  .dashboard-content {
+    padding: 2rem 1rem;
+  }
+}

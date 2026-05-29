@@ -7,10 +7,11 @@
 }
 
 .comm-label {
+  font-family: var(--font-sans);
   font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 3px;
+  letter-spacing: 0.2em;
   color: rgba(255,255,255,0.7);
   text-shadow: 0 1px 3px rgba(0,0,0,0.6);
   margin-bottom: 4px;
@@ -38,7 +39,7 @@
     0 4px 14px rgba(0,0,0,0.35),
     0 1px 2px rgba(0,0,0,0.15),
     inset 0 1px 0 rgba(255,255,255,0.9);
-  animation: cardReveal 380ms var(--ease) backwards;
+  animation: cardReveal 380ms var(--ease-game) backwards;
 }
 
 .comm-card--face.card--red { color: #d33; }
@@ -46,7 +47,7 @@
 
 .comm-r {
   font-size: 16px;
-  font-family: var(--mono);
+  font-family: var(--font-mono);
   font-weight: 700;
   line-height: 1;
 }

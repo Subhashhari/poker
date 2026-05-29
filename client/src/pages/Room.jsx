@@ -6,12 +6,12 @@ import './Room.css';
 function LeaveButton({ onClick }) {
   return (
     <button className="leave-btn" onClick={onClick} title="Leave game">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10" />
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter">
+        <path d="M15 3H5v18h10" />
         <polyline points="10 17 15 12 10 7" />
         <line x1="15" y1="12" x2="23" y2="12" />
       </svg>
-      Leave
+      LEAVE
     </button>
   );
 }
@@ -24,11 +24,9 @@ export default function Room({ roomId, playerUUID, gameState, roomData, onLeave 
   useEffect(() => {
     const handleRoundOver = ({ result }) => {
       setRoundResult(result);
-      // Wait for host to start next round
     };
 
     const handleTurnTimer = () => {
-      // When a new turn starts, ensure the round over overlay is closed
       setRoundResult(null);
     };
 
@@ -37,7 +35,7 @@ export default function Room({ roomId, playerUUID, gameState, roomData, onLeave 
     };
 
     const handlePlayerLeft = ({ name }) => {
-      setToast(`${name} left the game`);
+      setToast(`${name} LEFT THE GAME`);
       setTimeout(() => setToast(null), 3000);
     };
 
@@ -64,39 +62,59 @@ export default function Room({ roomId, playerUUID, gameState, roomData, onLeave 
   };
 
   const getPlayerName = (uuid) =>
-    gameState?.players?.find(p => p.uuid === uuid)?.name || 'Unknown';
+    gameState?.players?.find(p => p.uuid === uuid)?.name || 'UNKNOWN';
 
   const isHost = roomData?.hostUUID === playerUUID;
+  const myPlayer = gameState?.players?.find(p => p.uuid === playerUUID);
+  const needsRebuy = myPlayer?.chipStack === 0;
+
+  const handleRebuy = () => {
+    socket.emit('rebuy-request', { roomId, uuid: playerUUID });
+  };
 
   // ─── Active game ───
   if (gameState && gameState.status === 'in-progress') {
     return (
-      <div>
+      <div className="room-active">
         <LeaveButton onClick={onLeave} />
         {toast && <div className="toast">{toast}</div>}
         <Table gameState={gameState} myUUID={playerUUID} roomId={roomId} />
 
         {roundResult && (
           <div className="overlay">
-            <div className="overlay-card">
-              <h2>Round Over</h2>
-              <div className="detail">{getPlayerName(roundResult.winnerUUID)} wins</div>
-              <div className="detail-sub">
-                {roundResult.handName ? roundResult.handName : 'Everyone folded'}
+            <div className="overlay-card group">
+              <h2 className="overlay-title">ROUND OVER</h2>
+              <div className="overlay-detail">{getPlayerName(roundResult.winnerUUID)} WINS</div>
+              <div className="overlay-sub">
+                {roundResult.handName ? roundResult.handName.toUpperCase() : 'EVERYONE FOLDED'}
               </div>
-              <div className="pot-val">{roundResult.pot}</div>
+              <div className="overlay-pot">{roundResult.pot}</div>
               
-              {isHost ? (
-                <button 
-                  className="btn btn-gold" 
-                  style={{ marginTop: '24px', width: '100%' }}
-                  onClick={handleStartNextHand}
-                >
-                  Start Next Hand
-                </button>
+              {needsRebuy ? (
+                <div className="overlay-actions">
+                  <p className="error-text">YOU ARE OUT OF CHIPS!</p>
+                  <button className="btn btn-primary" onClick={handleRebuy}>
+                    REBUY (+1000)
+                  </button>
+                  <button className="btn btn-secondary" onClick={onLeave}>
+                    LEAVE GAME
+                  </button>
+                </div>
+              ) : isHost ? (
+                <div className="overlay-actions">
+                  <button className="btn btn-primary" onClick={handleStartNextHand}>
+                    NEXT HAND
+                  </button>
+                  <button className="btn btn-secondary" onClick={onLeave}>
+                    LEAVE GAME
+                  </button>
+                </div>
               ) : (
-                <div style={{ marginTop: '24px', opacity: 0.6, fontSize: '14px', textAlign: 'center' }}>
-                  Waiting for host...
+                <div className="overlay-actions">
+                  <div className="wait-text">WAITING FOR HOST...</div>
+                  <button className="btn btn-secondary" onClick={onLeave}>
+                    LEAVE GAME
+                  </button>
                 </div>
               )}
             </div>
@@ -106,18 +124,18 @@ export default function Room({ roomId, playerUUID, gameState, roomData, onLeave 
         {gameOverData && (
           <div className="overlay overlay-dark">
             <div className="overlay-card go-card">
-              <h2>Game Over</h2>
+              <h2 className="overlay-title">GAME OVER</h2>
               <div className="standings">
                 {gameOverData.finalStandings.map((p, i) => (
                   <div key={p.uuid} className="st-item">
-                    <span className="st-rank">{i + 1}.</span>
+                    <span className="st-rank">{i + 1}</span>
                     <span className="st-name">{p.name}</span>
                     <span className="st-chips">{p.chipStack}</span>
                   </div>
                 ))}
               </div>
-              <button className="btn btn-gold" style={{ width: '100%' }} onClick={onLeave}>
-                Back to Lobby
+              <button className="btn btn-primary" style={{ width: '100%' }} onClick={onLeave}>
+                BACK TO LOBBY
               </button>
             </div>
           </div>
@@ -130,26 +148,32 @@ export default function Room({ roomId, playerUUID, gameState, roomData, onLeave 
   const players = roomData?.players || [];
 
   return (
-    <div className="lobby">
+    <div className="lobby bg-grid">
+      <div className="noise-overlay" />
       <LeaveButton onClick={onLeave} />
       {toast && <div className="toast">{toast}</div>}
+      
       <div className="lobby-panel">
-        <div className="lobby-top">
-          <h2>Waiting for players</h2>
-          <div className="room-code-box">
-            <span>Room Code</span>
-            <div className="code">{roomId}</div>
-          </div>
+        <div className="lobby-header">
+          <h2 className="lobby-title">WAITING ROOM</h2>
+        </div>
+
+        <div className="room-code-box">
+          <span className="code-label">ROOM CODE</span>
+          <div className="code-value">{roomId}</div>
         </div>
 
         <div className="lobby-players">
-          <h3>Players ({players.length}/6)</h3>
+          <div className="players-header">
+            <h3>PLAYERS</h3>
+            <span>{players.length}/6</span>
+          </div>
           <div className="p-list">
             {players.map((p, i) => (
-              <div key={p.uuid} className="p-list-item" style={{ animationDelay: `${i * 60}ms` }}>
+              <div key={p.uuid} className="p-list-item">
                 <span className="name">
                   {p.name}
-                  {p.uuid === roomData.hostUUID && <span className="host-tag">host</span>}
+                  {p.uuid === roomData.hostUUID && <span className="host-tag">HOST</span>}
                 </span>
                 <span className="chips">{p.chipStack}</span>
               </div>
@@ -160,15 +184,14 @@ export default function Room({ roomId, playerUUID, gameState, roomData, onLeave 
         <div className="lobby-foot">
           {isHost ? (
             <button
-              id="start-game-btn"
-              className="btn-start"
+              className="btn btn-primary lobby-start-btn"
               onClick={handleStartGame}
               disabled={players.length < 2}
             >
-              {players.length >= 2 ? 'Start Game' : 'Need 2+ Players'}
+              {players.length >= 2 ? 'START GAME' : 'NEED 2+ PLAYERS'}
             </button>
           ) : (
-            <div className="wait-msg">Waiting for host to start...</div>
+            <div className="wait-msg">WAITING FOR HOST TO START...</div>
           )}
         </div>
       </div>

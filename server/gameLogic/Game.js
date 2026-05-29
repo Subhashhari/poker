@@ -86,7 +86,8 @@ class Game {
       this.currentRoundIndex + 1,
       eligible,
       dealerInEligible,
-      { smallBlind: this.config.smallBlind, bigBlind: this.config.bigBlind }
+      { smallBlind: this.config.smallBlind, bigBlind: this.config.bigBlind },
+      this.dbGameId
     );
 
     this.rounds.push(round);
@@ -166,10 +167,12 @@ class Game {
   }
 
   /**
-   * Check if the game is over (only 1 player has chips).
+   * Check if the game is over.
+   * In a cash game with rebuys, the game only ends when all but 1 player have explicitly left or disconnected.
    */
   _checkGameOver() {
-    return this.getEligiblePlayers().length <= 1;
+    const presentPlayers = this.players.filter(p => p.status !== 'disconnected' && p.status !== 'left');
+    return presentPlayers.length <= 1;
   }
 
   /**
@@ -228,6 +231,34 @@ class Game {
     }
 
     return { valid: true };
+  }
+
+  /**
+   * Handle a rebuy for a busted player.
+   */
+  async handleRebuy(playerUUID) {
+    if (this.status === 'finished') {
+      return { success: false, error: 'Game is already finished' };
+    }
+    const player = this.players.find(p => p.uuid === playerUUID);
+    if (!player) return { success: false, error: 'Player not found' };
+    if (player.chipStack > 0) return { success: false, error: 'Player already has chips' };
+
+    player.chipStack = 1000;
+    player.status = 'sitting-out'; // ready for next round
+
+    // DB updates
+    if (this.dbGameId) {
+      try {
+        const { default: db } = await import('../db/index.js');
+        await db.query('UPDATE users SET chips_bought = chips_bought + 1000 WHERE uuid = $1', [playerUUID]);
+        await db.query('UPDATE game_players SET starting_stack = starting_stack + 1000 WHERE game_id = $1 AND user_uuid = $2', [this.dbGameId, playerUUID]);
+      } catch (e) {
+        console.error('Failed to save rebuy to DB:', e);
+      }
+    }
+
+    return { success: true, newStack: player.chipStack };
   }
 
   /**

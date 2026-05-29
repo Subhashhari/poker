@@ -1,0 +1,158 @@
+/* ============================================
+   Leaderboard Page — Kinetic Typography System
+   ============================================ */
+
+.leaderboard-dashboard-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4rem;
+  width: 100%;
+  max-width: 1400px;
+  animation: fadeInUp var(--duration-base) var(--ease-luxury) both;
+}
+
+/* ---------- Loading ---------- */
+.leaderboard-loading {
+  text-align: left;
+  padding: 4rem 0;
+  font-family: var(--font-sans);
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  text-transform: uppercase;
+  color: var(--ed-muted-fg);
+}
+
+/* ---------- Page Header ---------- */
+.leaderboard-header {
+  border-bottom: 2px solid var(--ed-border);
+  padding-bottom: 2rem;
+}
+
+.leaderboard-title {
+  font-family: var(--font-sans);
+  font-size: clamp(2.5rem, 5vw, 5rem);
+  font-weight: 700;
+  line-height: 0.9;
+  letter-spacing: -0.05em;
+  color: var(--ed-fg);
+  margin: 0;
+  text-transform: uppercase;
+}
+
+/* ---------- Table Wrapper ---------- */
+.leaderboard-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border-top: 2px solid var(--ed-border);
+}
+
+/* ---------- Table Layout ---------- */
+.lb-header {
+  display: grid;
+  grid-template-columns: 80px 2fr 1fr 1fr 1fr;
+  padding: 1rem 2rem;
+  border-bottom: 2px solid var(--ed-border);
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--ed-muted-fg);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.lb-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.lb-row {
+  display: grid;
+  grid-template-columns: 80px 2fr 1fr 1fr 1fr;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  border-bottom: 2px solid var(--ed-border);
+  background: var(--ed-bg);
+  transition: all var(--duration-fast);
+}
+
+.lb-row:hover {
+  background: var(--ed-accent);
+  border-color: var(--ed-accent);
+}
+
+/* ---------- Cell Styling ---------- */
+.lb-cell {
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--ed-fg);
+  transition: color var(--duration-fast);
+}
+
+.lb-row:hover .lb-cell {
+  color: var(--ed-bg);
+}
+
+.lb-name {
+  font-family: var(--font-sans);
+  text-transform: uppercase;
+}
+
+.lb-rank {
+  font-size: 2rem;
+}
+
+/* ---------- Current User Highlight ---------- */
+.lb-row--current {
+  background: var(--ed-border);
+}
+
+.lb-row--current .lb-cell {
+  color: var(--ed-accent);
+}
+
+.lb-row--current:hover .lb-cell {
+  color: var(--ed-bg);
+}
+
+.lb-player-you {
+  margin-left: 1rem;
+  font-size: 1rem;
+  color: var(--ed-accent);
+  font-family: var(--font-mono);
+}
+
+.lb-row:hover .lb-player-you {
+  color: var(--ed-bg);
+}
+
+/* ---------- Empty State ---------- */
+.lb-empty {
+  text-align: left;
+  padding: 4rem 2rem;
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  color: var(--ed-muted-fg);
+  text-transform: uppercase;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1024px) {
+  .lb-header, .lb-row {
+    grid-template-columns: 60px 2fr 1fr 1fr 1fr;
+    padding: 1rem;
+  }
+  .lb-cell {
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .leaderboard-table-wrap {
+    overflow-x: auto;
+  }
+  .lb-header, .lb-row {
+    width: 800px; /* Force scroll */
+  }
+}

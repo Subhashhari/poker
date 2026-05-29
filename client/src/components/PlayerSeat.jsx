@@ -1,3 +1,4 @@
+import { Crown } from 'lucide-react';
 import './PlayerSeat.css';
 
 const SUIT = { hearts: '♥', diamonds: '♦', clubs: '♣', spades: '♠' };
@@ -44,14 +45,14 @@ export default function PlayerSeat({ player, isCurrentPlayer, isDealer, isSB, is
 
       <div className={cls}>
         <div className="seat-badges">
-          {isDealer && <span className="badge badge--d">D</span>}
-          {isSB && <span className="badge badge--sb">SB</span>}
-          {isBB && <span className="badge badge--bb">BB</span>}
+          {isDealer && <div className="badge-premium badge--dealer" title="Dealer"><Crown size={14} strokeWidth={3} /></div>}
+          {isSB && <div className="badge-premium badge--blind" title="Small Blind">SB</div>}
+          {isBB && <div className="badge-premium badge--blind" title="Big Blind">BB</div>}
         </div>
 
         {showCards && (
           <div className="seat-cards">
-            {isCurrentPlayer && player.hand ? (
+            {(isCurrentPlayer && player.hand) || player.hand ? (
               player.hand.map((c, i) => <CardFace key={i} card={c} delay={i * 80} />)
             ) : (
               <><CardBack /><CardBack delay={60} /></>
@@ -70,9 +71,10 @@ export default function PlayerSeat({ player, isCurrentPlayer, isDealer, isSB, is
         </div>
       </div>
 
-      {player.status === 'folded' && <span className="seat-status-tag">Folded</span>}
-      {player.status === 'disconnected' && <span className="seat-status-tag seat-status-tag--red">Offline</span>}
-      {player.status === 'sitting-out' && <span className="seat-status-tag seat-status-tag--amber">Sitting Out</span>}
+      {player._replayLabel && <span className="seat-status-tag" style={{ background: '#d4af37', color: '#000' }}>{player._replayLabel}</span>}
+      {!player._replayLabel && player.status === 'folded' && <span className="seat-status-tag">Folded</span>}
+      {!player._replayLabel && player.status === 'disconnected' && <span className="seat-status-tag seat-status-tag--red">Offline</span>}
+      {!player._replayLabel && player.status === 'sitting-out' && <span className="seat-status-tag seat-status-tag--amber">Sitting Out</span>}
     </div>
   );
 }

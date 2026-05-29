@@ -10,12 +10,12 @@
 .seat-action-tag {
   position: absolute;
   left: -80px; /* Default offset, adjusts based on seat pos */
-  font-family: var(--font);
+  font-family: var(--font-sans);
   font-size: 13px;
   font-weight: 700;
   color: #fff;
   white-space: nowrap;
-  animation: popIn 250ms var(--ease);
+  animation: popIn 250ms var(--ease-game);
   text-shadow: 0 1px 4px rgba(0,0,0,0.8);
 }
 
@@ -25,11 +25,11 @@
   display: flex;
   flex-direction: column;
   width: 140px;
-  border-radius: 12px;
+  border-radius: 4px;
   background: linear-gradient(to bottom, #000000 0%, #111111 100%);
   border: 1px solid rgba(255,255,255,0.15);
   box-shadow: 0 6px 16px rgba(0,0,0,0.6);
-  transition: opacity 300ms, transform 300ms;
+  transition: opacity 300ms var(--ease-game), transform 300ms var(--ease-game);
   z-index: 10;
 }
 
@@ -66,7 +66,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font);
+  font-family: var(--font-sans);
   font-weight: 700;
   font-size: 13px;
   color: #ccc;
@@ -95,7 +95,7 @@
 }
 
 .seat-stack {
-  font-family: var(--font);
+  font-family: var(--font-sans);
   font-size: 11px;
   font-weight: 700;
   color: #e0e0e0;
@@ -107,29 +107,37 @@
 /* ─── Badges (D/SB/BB) ─── */
 .seat-badges {
   position: absolute;
-  bottom: -6px;
-  left: -6px;
+  top: -10px;
+  right: -10px;
   display: flex;
-  gap: 3px;
-  z-index: 20;
+  gap: 4px;
+  z-index: 5;
 }
 
-.badge {
-  font-size: 9px;
-  font-weight: 700;
-  padding: 3px 6px;
-  border-radius: 50%;
-  line-height: 1;
-  text-transform: uppercase;
-  background: #333;
-  color: #aaa;
-  border: 1px solid #111;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+.badge-premium {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  min-width: 24px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #0f1115;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  padding: 0 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.badge--d {
-  background: #e0e0e0;
-  color: #111;
+.badge--dealer {
+  background: linear-gradient(135deg, #fcd34d 0%, #d4af37 100%);
+  color: #78350f;
+}
+
+.badge--blind {
+  background: linear-gradient(135deg, #94a3b8 0%, #475569 100%);
+  color: #f8fafc;
+  letter-spacing: 0.5px;
 }
 
 /* ─── Cards ─── */
@@ -160,7 +168,7 @@
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  animation: cardReveal 350ms var(--ease) backwards;
+  animation: cardReveal 350ms var(--ease-game) backwards;
   box-shadow: 0 2px 8px rgba(0,0,0,0.6);
 }
 
@@ -183,10 +191,10 @@
 .card--red { color: #d33; }
 .card--blk { color: #1a1a2e; }
 
-.seat--local .card-r { font-size: 16px; font-family: var(--mono); line-height: 1; margin-top: 2px; }
+.seat--local .card-r { font-size: 16px; font-family: var(--font-mono); line-height: 1; margin-top: 2px; }
 .seat--local .card-s { font-size: 18px; line-height: 1; }
 
-.seat--remote .card-r { font-size: 10px; font-family: var(--mono); line-height: 1; }
+.seat--remote .card-r { font-size: 10px; font-family: var(--font-mono); line-height: 1; }
 .seat--remote .card-s { font-size: 10px; line-height: 1; }
 
 

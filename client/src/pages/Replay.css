@@ -1,0 +1,230 @@
+/* ── Replay: Kinetic Typography System ── */
+
+.replay-container {
+  display: flex;
+  flex-direction: row;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background: var(--ed-bg);
+}
+
+/* ── Sidebar ── */
+.replay-sidebar {
+  width: 380px;
+  min-width: 380px;
+  background: var(--ed-bg);
+  color: var(--ed-fg);
+  border-right: 2px solid var(--ed-border);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  z-index: 10;
+  overflow-y: auto;
+}
+
+.replay-sidebar-top {
+  display: flex;
+  flex-direction: column;
+  padding: 2rem;
+  border-bottom: 2px solid var(--ed-border);
+}
+
+/* Back link */
+.replay-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0 0 2.5rem 0;
+  font-family: var(--font-sans);
+  font-size: 1.25rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--ed-muted-fg);
+  cursor: pointer;
+  transition: all var(--duration-fast);
+}
+
+.replay-back-link svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.replay-back-link:hover {
+  color: var(--ed-accent);
+}
+
+/* Section shared */
+.replay-sidebar-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.replay-section-label {
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ed-muted-fg);
+  margin: 0 0 1rem 0;
+}
+
+/* ── Round Selector ── */
+.replay-round-select {
+  width: 100%;
+  padding: 1rem;
+  background: var(--ed-bg);
+  color: var(--ed-fg);
+  font-family: var(--font-mono);
+  font-size: 1.25rem;
+  font-weight: 600;
+  border: 2px solid var(--ed-border);
+  border-radius: 0;
+  outline: none;
+  cursor: pointer;
+  text-transform: uppercase;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23A1A1AA' stroke-width='2' stroke-linecap='square' stroke-linejoin='miter'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  transition: all var(--duration-fast);
+}
+
+.replay-round-select:hover, .replay-round-select:focus {
+  border-color: var(--ed-accent);
+}
+
+.replay-round-select option {
+  background: var(--ed-bg);
+  color: var(--ed-fg);
+}
+
+/* ── Action Log ── */
+.replay-action-section {
+  padding: 2rem;
+  flex: 1;
+}
+
+.replay-action-log {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.replay-action-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.replay-action-label {
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--ed-muted-fg);
+}
+
+.replay-action-value {
+  font-family: var(--font-mono);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--ed-accent);
+  text-transform: uppercase;
+}
+
+.replay-action-empty {
+  font-family: var(--font-mono);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--ed-muted-fg);
+}
+
+/* ── Step Controls (pinned bottom) ── */
+.replay-controls-section {
+  padding: 2rem;
+  border-top: 2px solid var(--ed-border);
+}
+
+.replay-step-counter {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--ed-muted-fg);
+  margin-bottom: 1.5rem;
+  text-transform: uppercase;
+}
+
+.replay-control-buttons {
+  display: grid;
+  grid-template-columns: 1fr 2fr 2fr 1fr;
+  gap: 0.5rem;
+}
+
+.replay-control-buttons .btn {
+  height: 60px;
+  padding: 0;
+  font-size: 1rem;
+}
+
+.replay-control-buttons .btn-ghost {
+  border: 2px solid var(--ed-border);
+}
+
+.replay-control-buttons .btn-ghost:hover:not(:disabled) {
+  border-color: var(--ed-accent);
+  color: var(--ed-accent);
+}
+
+/* ── Main Stage (Dark) ── */
+.replay-stage {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(39, 39, 42, 0.4) 0%,
+    var(--game-bg) 60%
+  );
+}
+
+/* ── Loading / Empty states ── */
+.replay-loading, .replay-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100vw;
+  height: 100vh;
+  background: var(--ed-bg);
+  color: var(--ed-fg);
+  font-family: var(--font-sans);
+  font-size: 2rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  gap: 2rem;
+}
+
+/* ── Responsive ── */
+@media (max-width: 1024px) {
+  .replay-container {
+    flex-direction: column;
+  }
+
+  .replay-sidebar {
+    width: 100%;
+    min-width: unset;
+    height: auto;
+    max-height: 50vh;
+    border-right: none;
+    border-bottom: 2px solid var(--ed-border);
+  }
+}

@@ -3,6 +3,8 @@ import { Street } from './Street.js';
 import { PotManager } from './PotManager.js';
 import { evaluateBestHand, compareHands, handRankName } from './HandEvaluator.js';
 
+import db from '../db/index.js';
+
 /**
  * Round — manages streets within a single hand.
  *
@@ -15,12 +17,14 @@ class Round {
    * @param {Array<{uuid, name, chipStack, hand?, status}>} players
    * @param {number} dealerIndex
    * @param {{ smallBlind: number, bigBlind: number }} config
+   * @param {number|undefined} dbGameId
    */
-  constructor(roundNumber, players, dealerIndex, config) {
+  constructor(roundNumber, players, dealerIndex, config, dbGameId) {
     this.roundNumber = roundNumber;
     this.players = players;
     this.dealerIndex = dealerIndex;
     this.config = config;
+    this.dbGameId = dbGameId;
     this.potManager = new PotManager();
     this.communityCards = [];
     this.isFinished = false;
@@ -275,8 +279,11 @@ class Round {
 
   _endRound(reason, potAwards, hand = null) {
     this.isFinished = true;
+    const isTie = potAwards[0]?.winnerUUIDs.length > 1;
+    const winnerUUID = potAwards[0]?.winnerUUIDs[0] || null;
+
     this.result = {
-      winnerUUID: potAwards[0]?.winnerUUIDs[0] || null,
+      winnerUUID,
       hand,
       handName: hand ? handRankName(hand.handRank) : null,
       reason,
@@ -284,6 +291,61 @@ class Round {
       potAwards,
       updatedStacks: this.players.map(p => ({ uuid: p.uuid, chipStack: p.chipStack })),
     };
+
+    if (this.dbGameId) {
+      this._persistRoundToDB(winnerUUID, isTie).catch(err => console.error('Failed to save round to DB:', err));
+    }
+  }
+
+  async _persistRoundToDB(winnerUUID, isTie) {
+    const pot = this.potManager.getTotal();
+    // 1. Insert round
+    const res = await db.query(
+      'INSERT INTO rounds (game_id, round_number, winner_uuid, is_tie, pot) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+      [this.dbGameId, this.roundNumber, winnerUUID, isTie, pot]
+    );
+    const roundId = res.rows[0].id;
+
+    // 2. Insert hole cards
+    const holeCardQueries = this.players.map(p => {
+      if (!p.hand || p.hand.length < 2) return Promise.resolve();
+      return db.query(
+        'INSERT INTO round_hole_cards (round_id, player_uuid, card1_suit, card1_rank, card2_suit, card2_rank) VALUES ($1, $2, $3, $4, $5, $6)',
+        [roundId, p.uuid, p.hand[0].suit, p.hand[0].rank, p.hand[1].suit, p.hand[1].rank]
+      );
+    });
+
+    // 3. Insert community cards
+    const communityQueries = this.communityCards.map((c, idx) => 
+      db.query(
+        'INSERT INTO round_community_cards (round_id, card_order, suit, rank) VALUES ($1, $2, $3, $4)',
+        [roundId, idx, c.suit, c.rank]
+      )
+    );
+
+    // 4. Insert round actions
+    let actionOrder = 0;
+    const actionQueries = [];
+    for (const street of this.streets) {
+      for (const action of street.actions) {
+        actionQueries.push(
+          db.query(
+            'INSERT INTO round_actions (round_id, street, player_uuid, action_type, amount, action_order) VALUES ($1, $2, $3, $4, $5, $6)',
+            [roundId, street.name, action.playerUUID, action.type, action.amount || 0, actionOrder++]
+          )
+        );
+      }
+    }
+
+    // 5. Update rounds_won for the winner(s)
+    let winnerQueries = [];
+    if (winnerUUID && !isTie) {
+      winnerQueries.push(
+        db.query('UPDATE game_players SET rounds_won = rounds_won + 1 WHERE game_id = $1 AND user_uuid = $2', [this.dbGameId, winnerUUID])
+      );
+    }
+
+    await Promise.all([...holeCardQueries, ...communityQueries, ...actionQueries, ...winnerQueries]);
   }
 
   autoFold(playerUUID) {

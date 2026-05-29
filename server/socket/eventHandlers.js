@@ -5,6 +5,8 @@
  * Includes a 20-second turn timer that auto-folds on timeout.
  */
 
+import db from '../db/index.js';
+
 const TURN_TIMEOUT_MS = 20_000;
 
 /** Per-room turn timers. Key = roomId */
@@ -83,6 +85,18 @@ function handlePostAction(io, room, result, roomManager) {
       const finalStandings = room.game.players
         .map(p => ({ uuid: p.uuid, name: p.name, chipStack: p.chipStack }))
         .sort((a, b) => b.chipStack - a.chipStack);
+
+      if (room.game.dbGameId) {
+        const gameId = room.game.dbGameId;
+        db.query('UPDATE games SET finished_at = NOW() WHERE id = $1', [gameId]).catch(console.error);
+        const queries = finalStandings.map((p, idx) => 
+          db.query(
+            'UPDATE game_players SET final_stack = $1, placement = $2 WHERE game_id = $3 AND user_uuid = $4',
+            [p.chipStack, idx + 1, gameId, p.uuid]
+          )
+        );
+        Promise.all(queries).catch(console.error);
+      }
 
       for (const player of room.game.players) {
         if (!player.socketId) continue;
@@ -197,8 +211,8 @@ export function registerHandlers(io, roomManager) {
     });
 
     // ─── Start Game ───
-    socket.on('start-game', ({ roomId, uuid }) => {
-      const result = roomManager.startGame(roomId, uuid);
+    socket.on('start-game', async ({ roomId, uuid }) => {
+      const result = await roomManager.startGame(roomId, uuid);
       if (result.error) return socket.emit('room-error', { message: result.error });
 
       const room = roomManager.getRoom(roomId);
@@ -237,7 +251,27 @@ export function registerHandlers(io, roomManager) {
       const result = room.game.processAction(uuid, action);
       if (!result.valid) return socket.emit('action-error', { message: result.error });
 
+      if (action.type === 'all-in' && room.game.dbGameId) {
+        db.query('UPDATE game_players SET went_all_in = went_all_in + 1 WHERE game_id = $1 AND user_uuid = $2', [room.game.dbGameId, uuid])
+          .catch(console.error);
+      }
+
       handlePostAction(io, room, result, roomManager);
+    });
+
+    // ─── Rebuy Request ───
+    socket.on('rebuy-request', async ({ roomId, uuid }) => {
+      const room = roomManager.getRoom(roomId);
+      if (!room || !room.game) return socket.emit('rebuy-denied', { message: 'Room/Game not found' });
+
+      const result = await room.game.handleRebuy(uuid);
+      if (!result.success) {
+        socket.emit('rebuy-denied', { message: result.error });
+      } else {
+        socket.emit('rebuy-accepted', { uuid, newStack: result.newStack });
+        broadcastRoomUpdate(io, room);
+        broadcastGameUpdate(io, room);
+      }
     });
 
     // ─── Reconnect ───

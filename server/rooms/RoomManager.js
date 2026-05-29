@@ -1,4 +1,5 @@
 import { Game } from '../gameLogic/Game.js';
+import db from '../db/index.js';
 
 /**
  * RoomManager — in-memory room management.
@@ -95,9 +96,9 @@ class RoomManager {
 
   /**
    * Start the game in a room.
-   * @returns {{ game: Game } | { error: string }}
+   * @returns {Promise<{ game: Game } | { error: string }>}
    */
-  startGame(roomId, requestingUUID) {
+  async startGame(roomId, requestingUUID) {
     const room = this.rooms.get(roomId);
 
     if (!room) {
@@ -119,7 +120,25 @@ class RoomManager {
     const game = new Game(room.players);
     room.game = game;
     room.status = 'in-progress';
-    game.startGame();
+
+    try {
+      const res = await db.query('INSERT INTO games (room_id, player_count) VALUES ($1, $2) RETURNING id', [roomId, room.players.length]);
+      const gameId = res.rows[0].id;
+      game.dbGameId = gameId; // Save for round integration
+      
+      // Now start the game (which starts the first round)
+      game.startGame();
+
+      const queries = room.players.map(p => 
+        db.query('INSERT INTO game_players (game_id, user_uuid, starting_stack) VALUES ($1, $2, $3)', 
+        [gameId, p.uuid, p.chipStack])
+      );
+      await Promise.all(queries);
+    } catch (err) {
+      console.error('Failed to save game start to DB', err);
+      // Fallback: start game anyway if DB fails
+      game.startGame();
+    }
 
     return { game };
   }

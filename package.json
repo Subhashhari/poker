@@ -3,18 +3,24 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "node --watch server/index.js",
+    "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
+    "dev:server": "node --env-file=.env --watch server/index.js",
+    "dev:client": "cd client && npm run dev",
     "start": "node server/index.js",
     "build": "npm run build:client",
     "build:client": "cd client && npm install && npm run build",
     "test": "node server/gameLogic/__tests__/Deck.test.js && node server/gameLogic/__tests__/PotManager.test.js && node server/gameLogic/__tests__/HandEvaluator.test.js && node server/gameLogic/__tests__/Street.test.js && node server/gameLogic/__tests__/Round.test.js && node server/gameLogic/__tests__/Game.test.js && node server/gameLogic/__tests__/integration.test.js"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "express": "^4.21.0",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.21.0",
     "socket.io": "^4.8.0",
     "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
+    "concurrently": "^10.0.0",
     "jest": "^30.4.2"
   }
 }
