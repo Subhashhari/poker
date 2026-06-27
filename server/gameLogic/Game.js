@@ -197,24 +197,28 @@ class Game {
     if (!player) return;
 
     player.status = 'disconnected';
+    let result = { valid: true };
 
     // If it's their turn in the current round, auto-fold
     const round = this.getCurrentRound();
     if (round && !round.isFinished) {
-      const result = round.autoFold(playerUUID);
-      if (result.valid && result.roundComplete) {
-        if (this._checkGameOver()) {
-          const gameOverResult = this._endGame();
-          result.gameOver = true;
-          result.finalStandings = gameOverResult.finalStandings;
-        } else {
-          result.needsNextRound = true;
-        }
+      const autoFoldResult = round.autoFold(playerUUID);
+      if (autoFoldResult.valid && autoFoldResult.roundComplete) {
+        result = autoFoldResult;
       }
-      return result;
     }
 
-    return { valid: true };
+    // Always check if the game is over after a disconnect
+    if (this._checkGameOver()) {
+      const gameOverResult = this._endGame();
+      result.gameOver = true;
+      result.finalStandings = gameOverResult.finalStandings;
+      result.roundComplete = true; // force the event handler to process the game over
+    } else if (result.roundComplete) {
+      result.needsNextRound = true;
+    }
+
+    return result;
   }
 
   /**

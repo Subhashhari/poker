@@ -64,7 +64,7 @@ router.get('/stats/:uuid', async (req, res) => {
 
       chipsBought,
       chipsWon: parseInt(stats.total_final) || 0,
-      netProfit: (parseInt(stats.total_final) || 0) - chipsBought,
+      netProfit: (parseInt(stats.total_final) || 0) - (parseInt(stats.total_starting) || 0),
       bestGame: parseInt(stats.best_game) || 0,
       worstGame: parseInt(stats.worst_game) || 0,
     });
@@ -190,7 +190,7 @@ router.get('/leaderboard', async (req, res) => {
           user_uuid,
           COUNT(*) as games_played,
           COUNT(CASE WHEN placement = 1 THEN 1 END) as games_won,
-          SUM(final_stack) - SUM(starting_stack) as net_profit
+          SUM(COALESCE(final_stack, starting_stack)) - SUM(starting_stack) as net_profit
         FROM game_players
         GROUP BY user_uuid
       )
