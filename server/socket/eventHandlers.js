@@ -203,6 +203,10 @@ export function registerHandlers(io, roomManager) {
       const result = roomManager.joinRoom(roomId, uuid, name, socket.id);
       if (result.error) return socket.emit('room-error', { message: result.error });
 
+      // ---- Load‑test helper ----
+      socket.on('test-ping', (payload) => {
+        socket.emit('test-pong', payload);
+      });
       const room = result.room;
       socket.join(room.id);
       socket.emit('room-joined', { roomId: room.id });
